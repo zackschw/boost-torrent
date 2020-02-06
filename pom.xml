@@ -8,7 +8,7 @@
         <version>2.2.4.RELEASE</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>dev.zackschw.boost</groupId>
+    <groupId>dev.zackschw</groupId>
     <artifactId>boost-torrent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>boost-torrent</name>

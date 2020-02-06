@@ -1,4 +1,4 @@
-package dev.zackschw.boost.boosttorrent;
+package dev.zackschw.boosttorrent;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
