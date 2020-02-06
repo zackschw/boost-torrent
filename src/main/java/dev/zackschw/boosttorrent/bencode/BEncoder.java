@@ -48,6 +48,7 @@ public class BEncoder {
     }
 
     public static void writeNum(Number i, OutputStream output) throws IOException {
+        //write i<int>e
         output.write('i');
         output.write(Long.toString(i.longValue()).getBytes(StandardCharsets.UTF_8));
         output.write('e');
