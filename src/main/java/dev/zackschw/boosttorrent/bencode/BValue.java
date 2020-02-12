@@ -88,7 +88,7 @@ public class BValue {
         if (this.value instanceof List) {
             return (List<BValue>) this.value;
         } else {
-            throw new BencodeException("Excepted List<BencodeValue> !");
+            throw new BencodeException("Expected List<BencodeValue> !");
         }
     }
 

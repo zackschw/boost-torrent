@@ -9,21 +9,28 @@ import java.util.List;
 
 public class BEncoder {
     @SuppressWarnings("unchecked")
+    /**
+     * Writes o into output based on the data type of o
+     * @param o The unit of information to be encoded (eg. number, string, list, dict)
+     * @param output the stream to write the encoded data
+     * @throws RuntimeException if the unit was not a valid data type
+     * @throws IOException if exception occurs in moving bytes to the stream
+     */
     public static void write(Object o, OutputStream output) throws IOException {
         if (o instanceof Number) {
-            //return "i<int>e"
+            //write "i<int>e"
             writeNum((Number) o, output);
         }
         else if (o instanceof String) {
-            //return "<len>:<text>"
+            //write "<len>:<text>"
             writeString(((String) o).getBytes(StandardCharsets.UTF_8), output);
         }
         else if (o instanceof byte[]) {
-            //return "<len>:<text>"
+            //write "<len>:<text>"
             writeString((byte[]) o, output);
         }
         else if (o instanceof List) {
-            //return "l<content>e"
+            //write "l<content>e"
             output.write('l');
             for (Object listElem : (List<Object>) o) {
                 write(listElem, output);
@@ -31,9 +38,7 @@ public class BEncoder {
             output.write('e');
         }
         else if (o instanceof Map) {
-            //if object is a dictionary
-            //return "d<content>e"
-            //iterate over elements of the map and call write for them
+            //write "d<content>e"
             output.write('d');
             for (Map.Entry<String, Object> mapElem : ((Map<String, Object>)o).entrySet()) {
                 writeString(mapElem.getKey().getBytes(StandardCharsets.UTF_8), output);
@@ -42,20 +47,32 @@ public class BEncoder {
             output.write('e');
         }
         else {
-            //handle error somehow
+            //if it's a bad type, halt the execution
             throw new RuntimeException("BEncode has received bad input.");
         }
     }
 
+    /**
+     * Writes encoded number to the stream as a long value (to handle oversize int inputs)
+     * @param i the number to be written to the stream
+     * @param output the stream to write the encoded data
+     * @throws IOException if error occurs with writing to stream
+     */
     public static void writeNum(Number i, OutputStream output) throws IOException {
-        //write i<int>e
+        //write "i<int>e"
         output.write('i');
         output.write(Long.toString(i.longValue()).getBytes(StandardCharsets.UTF_8));
         output.write('e');
     }
 
+    /**
+     * Writes encoded string to the stream as UTF8 bytes
+     * @param b the array of bytes to write to the stream
+     * @param output the stream to write the encoded data
+     * @throws IOException if error occurs with writing to stream
+     */
     public static void writeString(byte[] b, OutputStream output) throws IOException {
-        //write len:string
+        //write "<len>:<string>"
         output.write((Integer.toString(b.length)).getBytes(StandardCharsets.UTF_8));
         output.write(':');
         output.write(b);
