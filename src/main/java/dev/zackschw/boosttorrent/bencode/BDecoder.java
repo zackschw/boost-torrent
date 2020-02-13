@@ -59,7 +59,7 @@ public class BDecoder implements Closeable {
      * @throws IOException if IOException occurs during read
      * @throws BencodeException if value is illegal
      */
-    private int readIntUntilChar(char c) throws IOException, BencodeException {
+    private long readNumUntilChar(char c) throws IOException, BencodeException {
         boolean readNum = false, neg = false;
         String rawInt = "";
 
@@ -84,7 +84,7 @@ public class BDecoder implements Closeable {
             }
         }
 
-        int res = Integer.parseInt(rawInt);
+        long res = Long.parseLong(rawInt);
 
         if (res == 0 && neg) {
             throw new BencodeException("Returned integer value of negative 0 is not a legal Bencode value!");
@@ -106,7 +106,7 @@ public class BDecoder implements Closeable {
             throw new BencodeException("Unexpected " + firstByte + " leading Bencoded integer, expected 'i'");
         }
 
-        long ret = readIntUntilChar('e');
+        long ret = readNumUntilChar('e');
 
         return new BValue(ret);
     }
@@ -118,8 +118,8 @@ public class BDecoder implements Closeable {
      * @throws BencodeException if value is not properly Bencoded
      */
     public BValue readStringAsBytes() throws IOException, BencodeException {
-        //calling readIntUntilChar will discard from stream everything up until the start of the actual string
-        int len = readIntUntilChar(':');
+        //calling readNumUntilChar will discard from stream everything up until the start of the actual string
+        int len = (int) readNumUntilChar(':');
         byte[] bytes = new byte[len];
 
         for (int i = 0; i < len; i++) {
