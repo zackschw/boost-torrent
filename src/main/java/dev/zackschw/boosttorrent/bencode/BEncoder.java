@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.List;
+import java.util.TreeMap;
 
 
 public class BEncoder {
@@ -39,8 +40,9 @@ public class BEncoder {
         }
         else if (o instanceof Map) {
             //write "d<content>e"
+            Map<String, Object> sortedDict = new TreeMap<>((Map<String, Object>) o);
             output.write('d');
-            for (Map.Entry<String, Object> mapElem : ((Map<String, Object>)o).entrySet()) {
+            for (Map.Entry<String, Object> mapElem : sortedDict.entrySet()) {
                 writeString(mapElem.getKey().getBytes(StandardCharsets.UTF_8), output);
                 write(mapElem.getValue(), output);
             }
