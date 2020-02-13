@@ -53,6 +53,45 @@ public class BDecoder implements Closeable {
         return t;
     }
 
+    /**
+     * Reads an encoded int that is end-delimited by input character c; handles negatives and discards end char
+     * @return the decoded integer value
+     * @throws IOException if IOException occurs during read
+     * @throws BencodeException if value is illegal
+     */
+    private int readIntUntilChar(char c) throws IOException, BencodeException {
+        boolean readNum = false, neg = false;
+        String rawInt = "";
+
+        if (peek() == '-') {
+            neg = true;
+            readOne();
+        }
+
+        while (!readNum) {
+            //read the char off the front of the stream
+            char b = (char) readOne();
+
+            //read chars off the stream until reaching the colon or a non-int char
+            if (b == c) {
+                readNum = true;
+            }
+            else if (b - '0' >= 0 && b - '9' <= 0) {
+                rawInt += b;
+            }
+            else {
+                throw new BencodeException("Found illegal character " + b + " in integer!");
+            }
+        }
+
+        int res = Integer.parseInt(rawInt);
+
+        if (res == 0 && neg) {
+            throw new BencodeException("Returned integer value of negative 0 is not a legal Bencode value!");
+        }
+
+        return neg ? -res : res;
+    }
 
     /**
      * Reads a Bencoded long from the input stream
@@ -62,55 +101,14 @@ public class BDecoder implements Closeable {
      */
     public BValue readLong() throws IOException, BencodeException {
         int firstByte = readOne();
-        long ret = 0;
 
         if (firstByte != 'i') {
             throw new BencodeException("Unexpected " + firstByte + " leading Bencoded integer, expected 'i'");
         }
 
-        boolean neg=false, readNum=false;
+        long ret = readIntUntilChar('e');
 
-        while (!readNum) {
-            // TODO read long
-        }
-
-        return neg ? new BValue(-ret) : new BValue(ret);
-    }
-
-
-    /**
-     * Reads length (positive int) up until ':' from input stream (discards ':' character)
-     * @return length of string
-     * @throws IOException if IOException occurs during read
-     * @throws BencodeException if value is not properly Bencoded
-     */
-    private int readStringLen() throws IOException, BencodeException {
-        boolean readNum = false;
-        String rawInt = "";
-
-        while (!readNum) {
-            //read the char off the front of the stream
-            int b = readOne();
-
-            //read chars off the stream until reaching the colon or a non-int char
-            if (b == ':') {
-                readNum = true;
-            } else if (b - '0' >= 0 && b - '9' <= 0) {
-                rawInt += (char) b;
-            } else {
-                throw new BencodeException("Found illegal character in string length field!");
-            }
-        }
-
-        return Integer.parseInt(rawInt);
-        //if we don't like this implementation, we can do the following:
-        //1. create this method:
-            //private int countBytesUntilChar(char c) {
-                //peek bytes and increment counter until peekedByte == c
-        //2. call the method on the encoded string to read how many digits the int is
-        //3. loop through each digit of the int
-            //while lenInt-- > 1
-                //result += 10^lenInt-- * (int)char
+        return new BValue(ret);
     }
 
     /**
@@ -119,9 +117,9 @@ public class BDecoder implements Closeable {
      * @throws IOException if IOException occurs during read
      * @throws BencodeException if value is not properly Bencoded
      */
-    public  BValue readStringAsBytes() throws IOException, BencodeException {
-        //calling readStringLen will discard from stream everything up until the start of the actual string
-        int len = readStringLen();
+    public BValue readStringAsBytes() throws IOException, BencodeException {
+        //calling readIntUntilChar will discard from stream everything up until the start of the actual string
+        int len = readIntUntilChar(':');
         byte[] bytes = new byte[len];
 
         for (int i = 0; i < len; i++) {
@@ -151,7 +149,7 @@ public class BDecoder implements Closeable {
         List<BValue> ret = new ArrayList<>();
 
         while (peek() != 'e') {
-            // TODO add items to list
+            ret.add(read(in));
         }
 
         readOne(); // read the 'e' that was peeked
@@ -174,7 +172,11 @@ public class BDecoder implements Closeable {
 
         Map<String, BValue> ret = new HashMap<>();
 
-        // TODO read (String, BValue) pairs and add to map
+        while (peek() != 'e') {
+            ret.put(readStringAsBytes().getString(), read(in));
+        }
+
+        readOne(); //read the 'e' that was peeked
 
         return new BValue(ret);
     }
@@ -187,10 +189,34 @@ public class BDecoder implements Closeable {
      */
     public BValue read(InputStream in) throws IOException, BencodeException {
         int t = peek();
+        BValue result;
 
-        switch(t) {
-            // TODO read various bencoded values
+        //int will start with i
+        if (t == 'i') {
+            result = readLong();
         }
-        return null;
+
+        //string will start with an int 0-9
+        else if (t - '0' >= 0 && t - '9' <= 0) {
+            result = readStringAsBytes();
+        }
+
+        //list will start with l
+        else if (t == 'l') {
+            result = readList();
+        }
+
+        //dict will start with d
+        else if (t == 'd') {
+            result = readDict();
+        }
+
+        //unsupported types will return an error
+        else {
+            throw new BencodeException("Bad encoding: First byte " + t + " doesn't represent supported type.");
+        }
+
+        return result;
     }
 }
+
