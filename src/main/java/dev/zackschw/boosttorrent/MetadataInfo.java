@@ -1,13 +1,16 @@
 package dev.zackschw.boosttorrent;
 
 import dev.zackschw.boosttorrent.bencode.BDecoder;
+import dev.zackschw.boosttorrent.bencode.BEncoder;
 import dev.zackschw.boosttorrent.bencode.BValue;
 import dev.zackschw.boosttorrent.bencode.BencodeException;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -60,15 +63,15 @@ public class MetadataInfo {
      * Creates MetadataInfo from the given dictionary of BValues
      * @param m Map of the dictionary of BValues from the metadata.
      */
-    public MetadataInfo(Map<String, BValue> m) {
-        // TODO getValues
-        this.infoHash = null;
-        this.announce = null;
-        this.announceList = null;
-        this.pieceLength = 0;
-        this.pieceHashes = null;
-        this.name = null;
-        this.files = null;
+    public MetadataInfo(Map<String, BValue> m) throws BencodeException, IOException {
+        Map<String, BValue> infoMap = getRequiredValue(m, "info").getMap();
+        this.infoHash = getHashFromInfo(infoMap);
+        this.announce = getRequiredValue(m, "announce").getString();
+        this.announceList = getNestedListValues(m);
+        this.pieceLength = (int) getRequiredValue(infoMap, "piece length").getLong();
+        this.pieceHashes = getHashArray(infoMap, 20);
+        this.name = getRequiredValue(infoMap, "name").getString();
+        this.files = getMetaFiles(infoMap);
     }
 
     private BValue getRequiredValue(Map<String, BValue> m, String key) throws BencodeException {
@@ -77,6 +80,64 @@ public class MetadataInfo {
             throw new BencodeException("Missing metadata key " + key);
 
         return val;
+    }
+
+    private byte[] getHashFromInfo(Map<String, BValue> infoMap) throws BencodeException, IOException {
+        ByteArrayOutputStream o = new ByteArrayOutputStream();
+        BEncoder.write(infoMap, o);
+        return hash(o.toByteArray());
+    }
+
+    private List<List<String>> getNestedListValues(Map<String, BValue> m) throws BencodeException {
+        List<BValue> outerList = getRequiredValue(m, "announce-list").getList();
+        List<List<String>> returnList = new ArrayList<>();
+        for (BValue outerListElem : outerList){
+            List<BValue> announceList = outerListElem.getList();
+            List<String> urlList = new ArrayList<>();
+            for (BValue tracker : announceList) {
+                urlList.add(tracker.getString());
+            }
+            returnList.add(urlList);
+        }
+
+        return returnList;
+    }
+
+    private List<MetaFile> getMetaFiles(Map<String, BValue> infoMap) throws BencodeException {
+        List<MetaFile> returnList = new ArrayList<>();
+        if (infoMap.containsKey("files")) {
+            List<BValue> fileList = getRequiredValue(infoMap, "files").getList();
+            for (BValue file : fileList) {
+                Map<String, BValue> fileDict = file.getMap();
+                List<BValue> filePath = getRequiredValue(fileDict, "path").getList();
+                StringBuilder outPath = new StringBuilder(getRequiredValue(infoMap, "name").getString() + "/");
+                for (BValue subDir : filePath) {
+                    outPath.append(subDir.getString()).append("/");
+                }
+                //remove the last / from the outPath
+                outPath.deleteCharAt(outPath.length() - 1);
+                long fileLength = getRequiredValue(fileDict, "length").getLong();
+                returnList.add(new MetaFile(outPath.toString(), fileLength));
+            }
+        }
+        else {
+            String filePath = getRequiredValue(infoMap, "name").getString();
+            long fileLength = getRequiredValue(infoMap, "length").getLong();
+            returnList.add(new MetaFile(filePath, fileLength));
+        }
+
+        return returnList;
+    }
+
+    public byte[][] getHashArray(Map<String, BValue> infoMap, int lenHash) throws BencodeException {
+        byte[] allHashes = getRequiredValue(infoMap, "pieces").getBytes();
+        byte[][] returnArray = new byte[allHashes.length / lenHash][];
+
+        for (int pieceNum = 0; pieceNum < allHashes.length / lenHash; pieceNum++) {
+            returnArray[pieceNum] = Arrays.copyOfRange(allHashes, pieceNum * lenHash, (pieceNum + 1) * lenHash);
+        }
+
+        return returnArray;
     }
 
     public byte[] getInfoHash() {
@@ -124,6 +185,7 @@ public class MetadataInfo {
     }
 
     private byte[] hash(byte[] input) {
+        //System.out.println(new String(input));
         MessageDigest md;
         try {
             md = MessageDigest.getInstance("SHA-1");

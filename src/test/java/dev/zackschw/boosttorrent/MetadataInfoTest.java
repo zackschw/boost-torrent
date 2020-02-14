@@ -22,16 +22,16 @@ class MetadataInfoTest {
 
         MetadataInfo metadata = new MetadataInfo(new ByteArrayInputStream(torrent.getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(hash(info.getBytes(StandardCharsets.UTF_8)), metadata.getInfoHash());
-        assertEquals("http://torrent.ubuntu.com:6969/announce", metadata.getAnnounce());
+        assertArrayEquals(hash(info.getBytes(StandardCharsets.UTF_8)), metadata.getInfoHash());
+        assertEquals("https://torrent.ubuntu.com/announce", metadata.getAnnounce());
         assertEquals(List.of(
-                List.of("http://torrent.ubuntu.com:6969/announce"),
-                List.of("http://ipv6.torrent.ubuntu.com:6969/announce")),
+                List.of("https://torrent.ubuntu.com/announce"),
+                List.of("https://ipv6.torrent.ubuntu.com/announce")),
                 metadata.getAnnounceList());
-        assertEquals("ubuntu-19.04-live-server-amd64.iso", metadata.getName());
+        assertEquals("ubuntu-19.10-live-server-amd64.iso", metadata.getName());
         assertEquals(40, metadata.getPieceLength());
         assertEquals(2, metadata.getNumPieces());
-        assertEquals("ubuntu-19.04-live-server-amd64.iso", metadata.getFiles().get(0).getPath());
+        assertEquals("ubuntu-19.10-live-server-amd64.iso", metadata.getFiles().get(0).getPath());
         assertEquals(78, metadata.getFiles().get(0).getLength());
         assertEquals(1, metadata.getFiles().size());
         assertEquals(38, metadata.getLastPieceLength());
@@ -40,19 +40,19 @@ class MetadataInfoTest {
 
     @Test
     void multiFileTest() throws Exception {
-        String info = "d5:filesld4:pathl5:file1e6:lengthi7eed4:pathl4:dir15:file2e6:lengthi78eee" +
-                "4:name9:multiFile12:piece lengthi50e6:pieces" + "40:0123456789012345678901234567890123456789e";
+        String info = "d5:filesld6:lengthi7e4:pathl5:file1eed6:lengthi78e4:pathl4:dir15:file2eee" +
+                "4:name9:multiFile12:piece lengthi50e6:pieces40:0123456789012345678901234567890123456789e";
         String torrent = "d8:announce35:https://torrent.ubuntu.com/announce13:announce-list" +
                 "ll35:https://torrent.ubuntu.com/announceel40:https://ipv6.torrent.ubuntu.com/announceee" +
                 "7:comment29:Ubuntu CD releases.ubuntu.com13:creation datei1571322740e4:info" + info + "e";
 
         MetadataInfo metadata = new MetadataInfo(new ByteArrayInputStream(torrent.getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(hash(info.getBytes(StandardCharsets.UTF_8)), metadata.getInfoHash());
-        assertEquals("http://torrent.ubuntu.com:6969/announce", metadata.getAnnounce());
+        assertArrayEquals(hash(info.getBytes(StandardCharsets.UTF_8)), metadata.getInfoHash());
+        assertEquals("https://torrent.ubuntu.com/announce", metadata.getAnnounce());
         assertEquals(List.of(
-                List.of("http://torrent.ubuntu.com:6969/announce"),
-                List.of("http://ipv6.torrent.ubuntu.com:6969/announce")),
+                List.of("https://torrent.ubuntu.com/announce"),
+                List.of("https://ipv6.torrent.ubuntu.com/announce")),
                 metadata.getAnnounceList());
         assertEquals("multiFile", metadata.getName());
         assertEquals(50, metadata.getPieceLength());

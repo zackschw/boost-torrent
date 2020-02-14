@@ -18,6 +18,9 @@ public class BEncoder {
      * @throws IOException if exception occurs in moving bytes to the stream
      */
     public static void write(Object o, OutputStream output) throws IOException {
+        if (o instanceof BValue) {
+            o = ((BValue) o).getValue();
+        }
         if (o instanceof Number) {
             //write "i<int>e"
             writeNum((Number) o, output);
