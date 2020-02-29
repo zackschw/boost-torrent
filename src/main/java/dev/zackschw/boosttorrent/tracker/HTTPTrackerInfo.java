@@ -9,7 +9,10 @@ import dev.zackschw.boosttorrent.bencode.BencodeException;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -205,16 +208,34 @@ public class HTTPTrackerInfo implements TrackerInfo {
 
         if (peersBV.getValue() instanceof  byte[]) {
             /* Binary model */
-            byte[] peers = peersBV.getBytes();
+            byte[] peerBytes = peersBV.getBytes();
+            int lenIP = 4, lenPort = 2;
 
-            // TODO decode and add each peer to List<PeerAddress> peers
+            for (int peerNum = 0; peerNum < peerBytes.length / (lenIP + lenPort); peerNum++) {
+                byte[] addrIP = Arrays.copyOfRange(peerBytes, peerNum * (lenIP + lenPort), peerNum * (lenIP + lenPort) + lenIP);
+                byte[] port = Arrays.copyOfRange(peerBytes, peerNum * (lenIP + lenPort) + lenIP, (peerNum + 1) * (lenIP + lenPort));
+                try {
+                    // Bitwise AND to mask possible negative return on port
+                    peers.add(new PeerAddress(addrIP, ByteBuffer.wrap(port).getShort() & 0xffff));
+                } catch (UnknownHostException ignored) {
+                }
+            }
         }
 
         else if (peersBV.getValue() instanceof ArrayList) {
             /* List of dictionaries model */
             List<BValue> peersList = peersBV.getList();
 
-            // TODO decode and add each peer to List<PeerAddress> peers
+            for (BValue v : peersList) {
+                Map<String, BValue> peerInfo = v.getMap();
+                // String peerID = peerInfo.get("peer id").getString();
+                String addrIP = peerInfo.get("ip").getString();
+                int port = Integer.parseInt(peerInfo.get("port").getString());
+                try {
+                    peers.add(new PeerAddress(addrIP, port));
+                } catch (UnknownHostException ignored) {
+                }
+            }
         }
     }
 

@@ -30,7 +30,7 @@ public class UDPTrackerInfo implements TrackerInfo {
         if (!url.startsWith("udp://"))
             throw new IllegalArgumentException("Invalid UDPTracker URL: " + url);
 
-        this.url = url.substring(6); // string after "udp://"
+        this.url = url;
         this.infoHash = infoHash;
         this.port = port;
 
@@ -94,8 +94,15 @@ public class UDPTrackerInfo implements TrackerInfo {
      */
     private boolean doRequest(int event) throws IOException {
         DatagramSocket socket = new DatagramSocket();
-        InetAddress address = null; // TODO parse url
-        int port = 0; // TODO parse url
+
+        //eg. "udp://tracker.com:8080"
+        int lenPrefix = 6; // "discard udp://"
+        int portColon = url.lastIndexOf(":");
+        String strAddr = url.substring(lenPrefix, portColon);
+        String strPort = url.substring(portColon + 1);
+
+        InetAddress address = InetAddress.getByName(strAddr);
+        int port = Integer.parseInt(strPort);
 
         /* Send and receive action: connect */
         long connectionID = sendConnectRequest(socket, address, port);
@@ -117,7 +124,7 @@ public class UDPTrackerInfo implements TrackerInfo {
     private long sendConnectRequest(DatagramSocket socket, InetAddress address, int port) throws IOException {
         /* Send connect */
         int transactionID = getRandomTransactionID();
-        byte[] connectBuffer = ByteBuffer.allocate(16).array(); // TODO construct the ByteBuffer
+        byte[] connectBuffer = ByteBuffer.allocate(16).putLong(MAGIC_CONSTANT).putInt(ACTION_CONNECT).putInt(transactionID).array();
         DatagramPacket connectPacket = new DatagramPacket(connectBuffer, connectBuffer.length, address, port);
         socket.send(connectPacket);
 
@@ -125,15 +132,36 @@ public class UDPTrackerInfo implements TrackerInfo {
         byte[] receiveBuf = new byte[16];
         DatagramPacket responsePacket = new DatagramPacket(receiveBuf, receiveBuf.length);
         socket.receive(responsePacket);
-        // TODO validate we received ACTION=CONNECT and our transactionID.
-        return 0; // TODO return connection ID
+        ByteBuffer buffer = ByteBuffer.wrap(receiveBuf);
+        if (buffer.getInt() != ACTION_CONNECT) {
+            throw new IOException("Bad UDP Response: Did not receive CONNECT action.");
+        }
+        if (buffer.getInt() != transactionID) {
+            throw new IOException("Bad UDP Response: Did not receive correct TRANSACTION_ID.");
+        }
+
+        return buffer.getLong(); // return connection ID
     }
 
     private void sendAnnounceRequest(DatagramSocket socket, InetAddress address, int port, long connectionID, int event)
             throws IOException, BencodeException {
         /* Send announce */
         int transactionID = getRandomTransactionID();
-        byte[] announceBuffer = ByteBuffer.allocate(98).array(); // TODO construct the ByteBuffer
+        byte[] announceBuffer = ByteBuffer.allocate(98)
+                .putLong(connectionID)
+                .putInt(ACTION_ANNOUNCE)
+                .putInt(transactionID)
+                .put(infoHash)
+                .put(coordinator.getMyPeerID())
+                .putLong(coordinator.getDownloaded())
+                .putLong(coordinator.getLeft())
+                .putLong(coordinator.getUploaded())
+                .putInt(event)
+                .putInt(0) // address DEFAULT 0
+                .putInt(MY_KEY)
+                .putInt(-1) // num_want DEFAULT -1
+                .putShort((short) this.port)
+                .array();
         DatagramPacket announcePacket = new DatagramPacket(announceBuffer, announceBuffer.length, address, port);
         socket.send(announcePacket);
 
@@ -142,14 +170,45 @@ public class UDPTrackerInfo implements TrackerInfo {
             byte[] receiveBuf = new byte[1024]; // large enough to hold peers
             DatagramPacket responsePacket = new DatagramPacket(receiveBuf, receiveBuf.length);
             socket.receive(responsePacket);
-            // TODO call decodePeers() here
+            decodePeers(receiveBuf, responsePacket.getLength(), transactionID);
         }
     }
 
-    void decodePeers(byte[] receiveBuf, int receiveLength, int transactionID) {
-        // TODO validate we received ACTION=ANNOUNCE and our transactionID
+    /*
+    Offset      Size            Name            Value
+    0           32-bit integer  action          1 // announce
+    4           32-bit integer  transaction_id
+    8           32-bit integer  interval
+    12          32-bit integer  leechers
+    16          32-bit integer  seeders
+    20 + 6 * n  32-bit integer  IP address
+    24 + 6 * n  16-bit integer  TCP port
+    20 + 6 * N
+     */
 
-        // TODO decode peers and add each peer to List<PeerAddress> peers
+    void decodePeers(byte[] receiveBuf, int receiveLength, int transactionID) throws IOException {
+        ByteBuffer buffer = ByteBuffer.wrap(receiveBuf);
+
+        if (buffer.getInt() != ACTION_ANNOUNCE) {
+            throw new IOException("Bad UDP Response: Did not receive ANNOUNCE action.");
+        }
+        if (buffer.getInt() != transactionID) {
+            throw new IOException("Bad UDP Response: Did not receive correct TRANSACTION_ID.");
+        }
+
+        // Ignore these response parameters
+        buffer.getInt(); // ignore interval
+        buffer.getInt(); // ignore leechers
+        buffer.getInt(); // ignore seeders
+
+        int lenPeers = (receiveLength - 20) / 6;
+        for (int peerNum = 0; peerNum < lenPeers; peerNum++) {
+            byte[] addrIP = new byte[4];
+            buffer.get(addrIP);
+            // Bitwise AND to mask possible negative return on port
+            int port = buffer.getShort() & 0xffff;
+            peers.add(new PeerAddress(addrIP, port));
+        }
     }
 
 

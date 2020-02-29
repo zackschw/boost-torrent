@@ -126,10 +126,6 @@ public class BDecoder implements Closeable {
             bytes[i] = (byte) readOne();
         }
 
-        //TODO can we verify that the string was the right length and not encoded erroneously?
-        //eg. if the string was 5:sample can we identify that and throw an error?
-        //if we have 7:sample can we do the same?
-
         return new BValue(bytes);
     }
 
