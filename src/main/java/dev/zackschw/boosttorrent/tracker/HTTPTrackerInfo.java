@@ -222,7 +222,7 @@ public class HTTPTrackerInfo implements TrackerInfo {
             }
         }
 
-        else if (peersBV.getValue() instanceof ArrayList) {
+        else if (peersBV.getValue() instanceof List) {
             /* List of dictionaries model */
             List<BValue> peersList = peersBV.getList();
 

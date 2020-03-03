@@ -1,6 +1,5 @@
 package dev.zackschw.boosttorrent.tracker;
 
-import dev.zackschw.boosttorrent.Peer;
 import dev.zackschw.boosttorrent.PeerAddress;
 
 import java.util.List;
