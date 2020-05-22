@@ -3,86 +3,112 @@ package dev.zackschw.boosttorrent;
 import java.io.IOException;
 import java.io.OutputStream;
 
+/**
+ * Object representing a message. Messages are sent to an output stream depending on their type.
+ */
 public class Message {
-    final static byte CHOKE = 0;
-    final static byte UNCHOKE = 1;
-    final static byte INTERESTED = 2;
-    final static byte UNINTERESTED = 3;
-    final static byte HAVE = 4;
-    final static byte BITFIELD = 5;
-    final static byte REQUEST = 6;
-    final static byte PIECE = 7;
-    final static byte CANCEL = 8;
+    private final static byte CHOKE = 0;
+    private final static byte UNCHOKE = 1;
+    private final static byte INTERESTED = 2;
+    private final static byte UNINTERESTED = 3;
+    private final static byte HAVE = 4;
+    private final static byte BITFIELD = 5;
+    private final static byte REQUEST = 6;
+    private final static byte PIECE = 7;
+    private final static byte CANCEL = 8;
 
-    private final byte type;
-
-    private int piece; // used for HAVE, REQUEST, PIECE, CANCEL
-    private int begin; // used for REQUEST, PIECE, CANCEL
-    private int len; // used for REQUEST, PIECE, CANCEL
-    private byte[] data; // used for BITFIELD, PIECE
-    private int dataOffset; // used for PIECE
-    private int datLen; // used for PIECE
 
     /**
-     * Object to hold Message fields. Used to set all fields of the respective Message type before sending the message
-     * to a peer.
-     * @param type one of the Message types defined in this class.
+     * Sends a Choke message.
+     * @param out output stream to send to
+     * @throws IOException if an I/O error occurs writing to the output stream
      */
-    public Message(byte type) {
-        this.type = type;
-    }
-
-    void sendMessage(OutputStream out) throws IOException {
-        int datalen = 0;
-
-        /* TODO Set datalen based on type */
-
-        /* TODO Write message to output stream */
-
+    public void sendChoke(OutputStream out) throws IOException {
+        // TODO
     }
 
     /**
-     * Used for HAVE, REQUEST, PIECE, CANCEL
+     * Sends an Unchoke message.
+     * @param out output stream to send to
+     * @throws IOException if an I/O error occurs writing to the output stream
      */
-    void setPiece(int piece) {
-        this.piece = piece;
+    public void sendUnchoke(OutputStream out) throws IOException {
+        // TODO
     }
 
     /**
-     * Used for REQUEST, PIECE, CANCEL
+     * Sends an Interested message.
+     * @param out output stream to send to
+     * @throws IOException if an I/O error occurs writing to the output stream
      */
-    void setBegin(int begin) {
-        this.begin = begin;
+    public void sendInterested(OutputStream out) throws IOException {
+        // TODO
     }
 
     /**
-     * Used for REQUEST, PIECE, CANCEL
+     * Sends a Not Interested message.
+     * @param out output stream to send to
+     * @throws IOException if an I/O error occurs writing to the output stream
      */
-    void setLen(int len) {
-        this.len = len;
+    public void sendNotInterested(OutputStream out) throws IOException {
+        // TODO
     }
 
     /**
-     * Used for BITFIELD, PIECE.
-     * Pass the full bitfield byte array or piece byte array
+     * Sends a Have message.
+     * @param out output stream to send to
+     * @param pieceIndex zero-based index of a piece that has just been successfully downloaded and verified via hash
+     * @throws IOException if an I/O error occurs writing to the output stream
      */
-    void setData(byte[] data) {
-        this.data = data;
+    public void sendHave(OutputStream out, int pieceIndex) throws IOException {
+        // TODO
     }
 
     /**
-     * Used for PIECE.
-     * Offset into the piece data
+     * Sends a Bitfield message.
+     * @param out output stream to send to
+     * @param bitfield bitfield representing the pieces that have been successfully downloaded
+     * @throws IOException if an I/O error occurs writing to the output stream
      */
-    void setDataOffset(int dataOffset) {
-        this.dataOffset = dataOffset;
+    public void sendBitfield(OutputStream out, byte[] bitfield) throws IOException {
+        // TODO
     }
 
     /**
-     * Used for PIECE
-     * Len of the piece data
+     * Sends a Request message.
+     * @param out output stream to send to
+     * @param index the zero-based piece index
+     * @param begin the zero-based byte offset within the piece
+     * @param length the requested length
+     * @throws IOException if an I/O error occurs writing to the output stream
      */
-    void setDatLen(int datLen) {
-        this.datLen = datLen;
+    public void sendRequest(OutputStream out, int index, int begin, int length) throws IOException {
+        // TODO
     }
+
+    /**
+     * Sends a Piece message.
+     * @param out output stream to send to
+     * @param index the zero-based piece index
+     * @param begin the zero-based byte offset within the piece
+     * @param block the block of data, which is a subset of the piece specified by index
+     * @throws IOException if an I/O error occurs writing to the output stream
+     */
+    public void sendPiece(OutputStream out, int index, int begin, byte[] block) throws IOException {
+        // TODO
+    }
+
+    /**
+     * Sends a Cancel message.
+     * @param out output stream to send to
+     * @param index the zero-based piece index
+     * @param begin the zero-based byte offset within the piece
+     * @param length the requested length
+     * @throws IOException if an I/O error occurs writing to the output stream
+     */
+    public void sendCancel(OutputStream out, int index, int begin, int length) {
+        // TODO
+    }
+
+
 }
