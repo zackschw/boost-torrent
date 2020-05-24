@@ -7,15 +7,15 @@ import java.io.OutputStream;
  * Object representing a message. Messages are sent to an output stream depending on their type.
  */
 public class Message {
-    private final static byte CHOKE = 0;
-    private final static byte UNCHOKE = 1;
-    private final static byte INTERESTED = 2;
-    private final static byte UNINTERESTED = 3;
-    private final static byte HAVE = 4;
-    private final static byte BITFIELD = 5;
-    private final static byte REQUEST = 6;
-    private final static byte PIECE = 7;
-    private final static byte CANCEL = 8;
+    final static byte CHOKE = 0;
+    final static byte UNCHOKE = 1;
+    final static byte INTERESTED = 2;
+    final static byte UNINTERESTED = 3;
+    final static byte HAVE = 4;
+    final static byte BITFIELD = 5;
+    final static byte REQUEST = 6;
+    final static byte PIECE = 7;
+    final static byte CANCEL = 8;
 
 
     /**
