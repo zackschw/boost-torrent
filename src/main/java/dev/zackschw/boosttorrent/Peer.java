@@ -12,6 +12,7 @@ public class Peer {
 
     private DataInputStream din;
     private DataOutputStream dout;
+    private PeerState state;
 
     private byte[] peerID;
 
@@ -24,12 +25,30 @@ public class Peer {
         this.myPeerID = myPeerID;
     }
 
-    void runConnection() {
+    /**
+     * @return PeerState object of the peer
+     */
+    PeerState getState() {
+        return state;
+    }
+
+    void runConnection(PeerCoordinator coordinator) {
         try {
             Socket sock = new Socket(peerAddress.getAddress(), peerAddress.getPort());
             din = new DataInputStream(sock.getInputStream());
             dout = new DataOutputStream(sock.getOutputStream());
 
+            /* Handshake the peer */
+            handshake();
+
+            /* Set up reading thread */
+            PeerConnectionIn cin = new PeerConnectionIn(this, din);
+            PeerConnectionOut cout = new PeerConnectionOut(this, dout);
+            state = new PeerState(this, cin, cout, meta, coordinator);
+
+            /* Send first messages */
+
+            /* Run! */
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -39,8 +58,7 @@ public class Peer {
     /**
      * Handshakes the peer and sets peerID on success.
      */
-    private boolean handshake() {
+    private void handshake() {
         // TODO
-        return false;
     }
 }
