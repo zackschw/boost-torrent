@@ -32,7 +32,7 @@ public class Peer {
         return state;
     }
 
-    void runConnection(PeerCoordinator coordinator, Bitfield myBitfield) {
+    void runConnection(PeerCoordinator coordinator, Bitvector myBitfield) {
         try {
             Socket sock = new Socket(peerAddress.getAddress(), peerAddress.getPort());
             din = new DataInputStream(sock.getInputStream());

@@ -12,7 +12,7 @@ public class PeerState {
     private boolean amInterested; // the client is interested in the peer
     private boolean peerInterested; // the peer is interested in the client
 
-    private Bitfield bitfield;
+    private Bitvector bitfield;
 
     PeerState(Peer peer, PeerConnectionIn in, PeerConnectionOut out, MetadataInfo meta, PeerCoordinator coordinator) {
         this.peer = peer;
