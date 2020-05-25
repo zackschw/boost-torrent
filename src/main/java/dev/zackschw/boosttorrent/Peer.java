@@ -1,9 +1,12 @@
 package dev.zackschw.boosttorrent;
 
+import dev.zackschw.boosttorrent.bencode.BencodeException;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Arrays;
 
 public class Peer {
     private final PeerAddress peerAddress;
@@ -38,8 +41,9 @@ public class Peer {
             din = new DataInputStream(sock.getInputStream());
             dout = new DataOutputStream(sock.getOutputStream());
 
-            /* Handshake the peer */
-            handshake();
+            /* Handshake the peer (noting that receive handshake will set their peerID) */
+            sendHandshake(dout);
+            recvHandshake(din);
 
             /* Set up reading thread */
             PeerConnectionIn cin = new PeerConnectionIn(this, din);
@@ -47,6 +51,7 @@ public class Peer {
             state = new PeerState(this, cin, cout, meta, coordinator);
 
             /* Send first messages */
+            //System.out.println("Hello, world!);
 
             /* Run! */
             cin.run();
@@ -60,9 +65,61 @@ public class Peer {
     }
 
     /**
-     * Handshakes the peer and sets peerID on success.
+     * Initiate handshake with the peer
+     * @param dout data output stream for the handshake bytes
+     * @throws IOException
      */
-    private void handshake() {
-        // TODO
+    private void sendHandshake(DataOutputStream dout) throws IOException {
+        //pstrlen -> send int 19
+        dout.writeInt(19);
+
+        //pstr -> send string "BitTorrent protocol"
+        dout.writeChars("BitTorrent protocol");
+
+        //reserved -> send 8 empty bytes
+        dout.writeLong(0);
+
+        //info_hash -> send hash from MetadataInfo
+        dout.write(meta.getInfoHash());
+
+        //peer_id -> send peer ID
+        dout.write(myPeerID);
+    }
+
+    /**
+     * Set peerID after verifying integrity of received handshake
+     * @param din data input stream for the handshake bytes
+     * @throws IOException
+     */
+    private void recvHandshake(DataInputStream din) throws IOException {
+        //verify that pstrlen is 19
+        int pstrlen = din.readInt();
+        if (pstrlen != 19) {
+            throw new IOException("Handshake pstrlen is invalid. Expected: 19. Received: " + pstrlen);
+        };
+
+        //verify that pstr is "BitTorrent protocol"
+        byte[] pstr = new byte[19];
+        din.readFully(pstr);
+        if (Arrays.toString(pstr) != "BitTorrent protocol") {
+            throw new IOException("Handshake pstr is invalid. Expected: \"BitTorrent protocol\". Received: " + Arrays.toString(pstr));
+        };
+
+        //verify that reserved bytes are empty
+        long reserved = din.readLong();
+        if (reserved != 0) {
+            throw new IOException("Handshake reserved bytes (displayed as long int) are invalid. Expected: 0. Received: " + reserved);
+        }
+
+        //verify that the info hash value matches what was expected
+        byte[] info_hash = new byte[20];
+        din.readFully(info_hash);
+        if (!Arrays.equals(meta.getInfoHash(), info_hash)) {
+            throw new IOException("Handshake info hash is invalid. Expected: " + Arrays.toString(meta.getInfoHash()) + ". Received: " + Arrays.toString(info_hash));
+        };
+
+        //naively take 20 bytes as their peerID, since the rest of the handshake was correct
+        peerID = new byte[20];
+        din.readFully(peerID);
     }
 }
