@@ -23,7 +23,7 @@ public class PeerConnectionOut {
 
     }
 
-    void sendUninterested() {
+    void sendNotInterested() {
 
     }
 
