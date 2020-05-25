@@ -42,7 +42,7 @@ public class PeerConnectionIn {
                         break;
                     case Message.INTERESTED:
                         break;
-                    case Message.UNINTERESTED:
+                    case Message.NOTINTERESTED:
                         break;
                     case Message.HAVE:
                         break;
