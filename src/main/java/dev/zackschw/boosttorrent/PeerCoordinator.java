@@ -12,7 +12,8 @@ public class PeerCoordinator {
     private long downloaded;
     private long left;
 
-    private List<Peer> peers;
+    private final List<PeerAddress> potentialPeers;
+    private final List<Peer> peers;
 
     private static int MAX_WANTED_PEERS = 30;
     private static int MAX_PEERS = 50;
@@ -21,6 +22,7 @@ public class PeerCoordinator {
         this.myPeerID = myPeerID;
         this.meta = meta;
         this.peers = new ArrayList<>(MAX_PEERS);
+        this.potentialPeers = new ArrayList<>();
     }
 
     /**
@@ -28,14 +30,17 @@ public class PeerCoordinator {
      */
     public void initiateConnections(TrackerCoordinator tracker) {
         /* Query tracker */
-        List<PeerAddress> potentialPeers = tracker.sendStarted();
+        List<PeerAddress> received = tracker.sendStarted();
+        potentialPeers.addAll(received);
         // TODO assert size > 0
 
         /* Add peer */
-        for (int i=0; i < MAX_WANTED_PEERS && potentialPeers.size() > 0; i++) {
-            PeerAddress address = potentialPeers.remove(0);
-            Peer peer = new Peer(address, meta, myPeerID);
-            addPeer(peer);
+        synchronized (potentialPeers) {
+            for (int i = 0; i < MAX_WANTED_PEERS && potentialPeers.size() > 0; i++) {
+                PeerAddress address = potentialPeers.remove(0);
+                Peer peer = new Peer(address, meta, myPeerID);
+                addPeer(peer);
+            }
         }
     }
 
@@ -66,10 +71,32 @@ public class PeerCoordinator {
     }
 
     /**
+     * On successful connection, add peer to active peers
+     * @param peer peer that was connected to
+     */
+    public void onConnected(Peer peer) {
+        synchronized (peers) {
+            peers.add(peer);
+        }
+    }
+
+    /**
      * On disconnect, remove from active peers add a new peer if needed
      */
-    public void onDisconnect(Peer peer) {
+    public void onDisconnected(Peer peer) {
+        synchronized (peers) {
+            peers.remove(peer);
+        }
 
+        if (peers.size() < MAX_WANTED_PEERS) {
+            synchronized (potentialPeers) {
+                if (potentialPeers.size() > 0) {
+                    PeerAddress address = potentialPeers.remove(0);
+                    Peer newPeer = new Peer(address, meta, myPeerID);
+                    addPeer(newPeer);
+                }
+            }
+        }
     }
 
     public byte[] getMyPeerID() {

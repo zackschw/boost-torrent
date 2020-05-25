@@ -45,19 +45,24 @@ public class Peer {
             sendHandshake(dout);
             recvHandshake(din);
 
-            /* Set up reading thread */
+            /* Set up reading */
             PeerConnectionIn cin = new PeerConnectionIn(this, din);
             PeerConnectionOut cout = new PeerConnectionOut(this, dout);
             state = new PeerState(this, cin, cout, meta, coordinator);
 
+            coordinator.onConnected(this);
+
             /* Send first messages */
-            //System.out.println("Hello, world!);
+
+            if (myBitfield != null && !myBitfield.isEmpty()) {
+                cout.sendBitfield(myBitfield.toByteArray());
+            }
 
             /* Run! */
             cin.run();
 
             /* Disconnect */
-            coordinator.onDisconnect(this);
+            coordinator.onDisconnected(this);
 
         } catch (IOException e) {
             e.printStackTrace();
