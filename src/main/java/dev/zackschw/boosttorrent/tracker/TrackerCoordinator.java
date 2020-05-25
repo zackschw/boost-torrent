@@ -1,12 +1,13 @@
 package dev.zackschw.boosttorrent.tracker;
 
 import dev.zackschw.boosttorrent.MetadataInfo;
+import dev.zackschw.boosttorrent.PeerAddress;
 import dev.zackschw.boosttorrent.PeerCoordinator;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class TrackerClient {
+public class TrackerCoordinator {
     private final MetadataInfo meta;
     private final int port;
     private final PeerCoordinator coordinator;
@@ -14,7 +15,7 @@ public class TrackerClient {
     private final List<TrackerInfo> trackers = new ArrayList<>();
 
 
-    public TrackerClient(MetadataInfo meta, int port, PeerCoordinator coordinator) {
+    public TrackerCoordinator(MetadataInfo meta, int port, PeerCoordinator coordinator) {
         this.meta = meta;
         this.port = port;
         this.coordinator = coordinator;
@@ -37,13 +38,20 @@ public class TrackerClient {
             trackers.add(new HTTPTrackerInfo(url, meta.getInfoHash(), port, coordinator));
     }
 
-    public boolean sendStarted() {
+
+
+    /**
+     * Send started event.
+     * @return list of peers retrieved from tracker, or null if no successful connection was found.
+     */
+    public List<PeerAddress> sendStarted() {
+        // TODO query asynchronously
         for (TrackerInfo tracker : trackers) {
             if (tracker.sendStarted())
-                return true;
+                return tracker.getPeers();
         }
 
-        return false;
+        return null;
     }
 
 
@@ -61,12 +69,16 @@ public class TrackerClient {
     }
 
 
-    public boolean sendEmpty() {
+    /**
+     * Send empty event.
+     * @return list of peers retrieved from tracker, or null if no successful connection was found.
+     */
+    public List<PeerAddress> sendEmpty() {
         for (TrackerInfo tracker : trackers) {
             if (tracker.sendEmpty())
-                return true;
+                return tracker.getPeers();
         }
 
-        return false;
+        return null;
     }
 }
