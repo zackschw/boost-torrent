@@ -6,6 +6,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class Peer {
@@ -15,7 +16,10 @@ public class Peer {
 
     private DataInputStream din;
     private DataOutputStream dout;
+
     private PeerState state;
+    private PeerConnectionIn cin;
+    private PeerConnectionOut cout;
 
     private byte[] peerID;
 
@@ -28,12 +32,20 @@ public class Peer {
         this.myPeerID = myPeerID;
     }
 
-    /**
-     * @return PeerState object of the peer
-     */
+
     PeerState getState() {
         return state;
     }
+
+    PeerConnectionIn getPeerConnectionIn() {
+        return cin;
+    }
+
+    PeerConnectionOut getPeerConnectionOut() {
+        return cout;
+    }
+
+
 
     void runConnection(PeerCoordinator coordinator, Bitvector myBitfield) {
         try {
@@ -46,8 +58,8 @@ public class Peer {
             recvHandshake(din);
 
             /* Set up reading */
-            PeerConnectionIn cin = new PeerConnectionIn(this, din);
-            PeerConnectionOut cout = new PeerConnectionOut(this, dout);
+            cin = new PeerConnectionIn(this, din);
+            cout = new PeerConnectionOut(this, dout);
             state = new PeerState(this, cin, cout, meta, coordinator);
 
             coordinator.onConnected(this);
@@ -69,17 +81,24 @@ public class Peer {
         }
     }
 
+
+    void disconnect() {
+        cin.disconnect();
+        cout.disconnect();
+    }
+
+
     /**
      * Initiate handshake with the peer
      * @param dout data output stream for the handshake bytes
      * @throws IOException
      */
     private void sendHandshake(DataOutputStream dout) throws IOException {
-        //pstrlen -> send int 19
-        dout.writeInt(19);
+        //pstrlen -> send byte 19
+        dout.write(19);
 
         //pstr -> send string "BitTorrent protocol"
-        dout.writeChars("BitTorrent protocol");
+        dout.write("BitTorrent protocol".getBytes(StandardCharsets.UTF_8));
 
         //reserved -> send 8 empty bytes
         dout.writeLong(0);
