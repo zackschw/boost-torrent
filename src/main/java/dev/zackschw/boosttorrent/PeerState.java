@@ -12,7 +12,9 @@ public class PeerState {
     private boolean amInterested; // the client is interested in the peer
     private boolean peerInterested; // the peer is interested in the client
 
-    private Bitvector bitfield;
+    private Bitvector bitfield; // the peer's bitfield
+
+    private Piece workingPiece;
 
     PeerState(Peer peer, PeerConnectionIn in, PeerConnectionOut out, MetadataInfo meta, PeerCoordinator coordinator) {
         this.peer = peer;
@@ -93,8 +95,18 @@ public class PeerState {
     /**
      * On receive PIECE message
      */
-    void onPieceMessage(int piece, int begin, byte[] block) {
+    void onPieceMessage(int piece, int begin) {
 
+    }
+
+    /**
+     * Returns the Piece object that the client is requesting from this peer, specified by the piece index.
+     * @param index zero-based index of the piece
+     * @return the piece object
+     */
+    Piece getWorkingPiece(int index) {
+        // TODO
+        return workingPiece;
     }
 
     /**

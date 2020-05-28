@@ -66,11 +66,22 @@ public class PeerConnectionIn {
                         state.onRequestMessage(index, begin, length);
                         break;
                     case Message.PIECE:
-                        block = new byte[len-9];
                         index = din.readInt();
                         begin = din.readInt();
-                        din.readFully(block);
-                        state.onPieceMessage(index, begin, block);
+                        length = len-9;
+
+                        Piece piece = state.getWorkingPiece(index);
+                        if (piece != null) {
+                            /* Read the block directly into the piece buffer */
+                            block = piece.bytes;
+                            din.readFully(block, begin, length);
+                        } else {
+                            /* Still need to consume the block */
+                            block = new byte[length];
+                            din.readFully(block);
+                        }
+
+                        state.onPieceMessage(index, begin);
                         break;
                     case Message.CANCEL:
                         index = din.readInt();
