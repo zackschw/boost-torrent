@@ -8,6 +8,7 @@ import java.util.List;
 public class PeerCoordinator {
     private final byte[] myPeerID;
     private final MetadataInfo meta;
+    private final Storage storage;
     private long uploaded;
     private long downloaded;
     private long left;
@@ -18,9 +19,11 @@ public class PeerCoordinator {
     private static int MAX_WANTED_PEERS = 30;
     private static int MAX_PEERS = 50;
 
-    public PeerCoordinator(byte[] myPeerID, MetadataInfo meta) {
+    public PeerCoordinator(byte[] myPeerID, MetadataInfo meta, Storage storage) {
         this.myPeerID = myPeerID;
         this.meta = meta;
+        this.storage = storage;
+
         this.peers = new ArrayList<>(MAX_PEERS);
         this.potentialPeers = new ArrayList<>();
     }
@@ -45,7 +48,8 @@ public class PeerCoordinator {
     }
 
     /**
-     * Adds peer to active peers and runs connection in a new thread.
+     * Runs peer connection in a new thread. Peer will be added to list of active peers upon successful handshake,
+     * via onConnected().
      */
     public void addPeer(Peer peer) {
         /* Check that we want connections */
@@ -54,10 +58,7 @@ public class PeerCoordinator {
         }
 
         /* Run connection in a new thread */
-        Thread t = new Thread(() -> {
-            // TODO add myBitfield
-            peer.runConnection(this, null);
-        });
+        Thread t = new Thread(() -> peer.runConnection(this, storage.getMyBitfield()));
         t.start();
     }
 
@@ -66,11 +67,8 @@ public class PeerCoordinator {
      * @param piece piece to check for
      */
     public boolean havePiece(int piece) {
-        /*
-        Bitvector myBitfield;
+        Bitvector myBitfield = storage.getMyBitfield();
         return myBitfield.isSet(piece);
-         */
-        return false;
     }
 
     /**
@@ -78,16 +76,14 @@ public class PeerCoordinator {
      * @param bitvector peer's bitvector to check for interest for
      */
     public boolean wantAnyPiece(Bitvector bitvector) {
-        /*
-        if (myBitvector == null)
+        Bitvector myBitfield = storage.getMyBitfield();
+        if (myBitfield == null)
             return true;
-         */
 
         int size = bitvector.getSize();
 
         for (int i=0; i < size; i++) {
-            if (// !myBitvector.isSet(i) &&
-                    bitvector.isSet(i)) {
+            if (!myBitfield.isSet(i) && bitvector.isSet(i)) {
                 return true;
             }
         }

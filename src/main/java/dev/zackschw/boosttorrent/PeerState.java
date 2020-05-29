@@ -47,9 +47,14 @@ public class PeerState {
      * On receive HAVE message
      */
     void onHaveMessage(int piece) {
+        /* Check if the other side sent a bitfield */
         if (bitfield == null) {
-            /* TODO Wait for bitfield */
-            return;
+            if (meta.getNumPieces() != 0) {
+                bitfield = new Bitvector(meta.getNumPieces());
+            } else {
+                /* TODO wait for bitvector */
+                return;
+            }
         }
 
         /* Sanity check */
@@ -182,7 +187,7 @@ public class PeerState {
      * If the interest status changes, a respective INTERESTED or NOTINTERESTED message is sent.
      * @param interested new interested status
      */
-    void setAmInterested(boolean interested) {
+    private void setAmInterested(boolean interested) {
         if (!amInterested && interested) {
             amInterested = true;
             cout.sendInterested();

@@ -71,7 +71,6 @@ public class Peer {
             coordinator.onConnected(this);
 
             /* Send first messages */
-
             if (myBitfield != null && !myBitfield.isEmpty()) {
                 cout.sendBitfield(myBitfield.toByteArray());
             }
@@ -79,11 +78,10 @@ public class Peer {
             /* Run! */
             cin.run();
 
+        } catch (IOException ignore) {
+        } finally {
             /* Disconnect */
             coordinator.onDisconnected(this);
-
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
