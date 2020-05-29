@@ -2,6 +2,7 @@ package dev.zackschw.boosttorrent;
 
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 
 public class PeerConnectionIn {
     private final Peer peer;
@@ -96,6 +97,8 @@ public class PeerConnectionIn {
                 }
             }
 
+        } catch (SocketTimeoutException timeout) {
+            peer.disconnect();
         } catch (IOException ignored) {
             // Likely socket closed
         } catch (Throwable t) {

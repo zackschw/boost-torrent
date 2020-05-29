@@ -66,6 +66,7 @@ public class Peer {
     public void runConnection(PeerCoordinator coordinator, Bitvector myBitfield) {
         try {
             sock = new Socket(peerAddress.getAddress(), peerAddress.getPort());
+            sock.setSoTimeout(SO_TIMEOUT);
             din = new DataInputStream(sock.getInputStream());
             dout = new DataOutputStream(sock.getOutputStream());
 
@@ -164,4 +165,7 @@ public class Peer {
         if (state != null)
             state.onHaveFinishedPiece(piece);
     }
+
+
+    private static int SO_TIMEOUT = 120000; // 2 min
 }
