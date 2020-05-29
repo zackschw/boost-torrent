@@ -6,19 +6,21 @@ import java.io.IOException;
 public class PeerConnectionIn {
     private final Peer peer;
     private final DataInputStream din;
+    private boolean stop;
 
     PeerConnectionIn (Peer peer, DataInputStream din) {
         this.peer = peer;
         this.din = din;
+        stop = false;
     }
 
     void disconnect() {
-        // TODO
+        stop = true;
     }
 
     void run() {
         try {
-            while(true) {
+            while (!stop) {
                 PeerState state = peer.getState();
 
                 /* Read length */
@@ -95,7 +97,7 @@ public class PeerConnectionIn {
             }
 
         } catch (IOException ignored) {
-
+            // Likely socket closed
         } catch (Throwable t) {
             System.out.println("Fatal exception: " + t);
         } finally {

@@ -109,6 +109,6 @@ public class PeerConnectionOut {
      * Called when we are disconnecting from this peer.
      */
     void disconnect() {
-        // Ignore, PeerConnectionIn will close the socket on exception
+        peer.disconnect();
     }
 }

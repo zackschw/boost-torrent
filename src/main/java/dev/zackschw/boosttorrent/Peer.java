@@ -14,6 +14,7 @@ public class Peer {
     private final MetadataInfo meta;
     private final byte[] myPeerID;
 
+    private Socket sock;
     private DataInputStream din;
     private DataOutputStream dout;
 
@@ -45,17 +46,26 @@ public class Peer {
         return cout;
     }
 
+    public byte[] getPeerID() {
+        return peerID;
+    }
+
+    /**
+     * Closes the socket.
+     */
     public void disconnect() {
         if (cin != null)
             cin.disconnect();
 
-        if (cout != null)
-            cout.disconnect();
+        try {
+            sock.close();
+        } catch (IOException ignored) {
+        }
     }
 
     public void runConnection(PeerCoordinator coordinator, Bitvector myBitfield) {
         try {
-            Socket sock = new Socket(peerAddress.getAddress(), peerAddress.getPort());
+            sock = new Socket(peerAddress.getAddress(), peerAddress.getPort());
             din = new DataInputStream(sock.getInputStream());
             dout = new DataOutputStream(sock.getOutputStream());
 
