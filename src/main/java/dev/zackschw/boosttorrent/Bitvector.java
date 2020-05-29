@@ -31,6 +31,13 @@ public class Bitvector {
     }
 
     /**
+     * @return size of the bitvector
+     */
+    public int getSize() {
+        return size;
+    }
+
+    /**
      * Sets bit index to 1
      * @param bit zero-indexed bit to set
      * @throws IllegalArgumentException if the bit is out of bounds of the size of the bitvector
