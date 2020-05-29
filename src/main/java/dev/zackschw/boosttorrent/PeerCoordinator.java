@@ -61,6 +61,40 @@ public class PeerCoordinator {
         t.start();
     }
 
+    /**
+     * Returns true if the client has the given piece, otherwise false.
+     * @param piece piece to check for
+     */
+    public boolean havePiece(int piece) {
+        /*
+        Bitvector myBitfield;
+        return myBitfield.isSet(piece);
+         */
+        return false;
+    }
+
+    /**
+     * Returns true if the client is interested in any piece of the bitvector, otherwise false
+     * @param bitvector peer's bitvector to check for interest for
+     */
+    public boolean wantAnyPiece(Bitvector bitvector) {
+        /*
+        if (myBitvector == null)
+            return true;
+         */
+
+        int size = bitvector.getSize();
+
+        for (int i=0; i < size; i++) {
+            if (// !myBitvector.isSet(i) &&
+                    bitvector.isSet(i)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 
     public void gotRequest() {
         // TODO

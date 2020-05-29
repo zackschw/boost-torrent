@@ -45,17 +45,23 @@ public class Peer {
         return cout;
     }
 
+    public void disconnect() {
+        if (cin != null)
+            cin.disconnect();
 
+        if (cout != null)
+            cout.disconnect();
+    }
 
-    void runConnection(PeerCoordinator coordinator, Bitvector myBitfield) {
+    public void runConnection(PeerCoordinator coordinator, Bitvector myBitfield) {
         try {
             Socket sock = new Socket(peerAddress.getAddress(), peerAddress.getPort());
             din = new DataInputStream(sock.getInputStream());
             dout = new DataOutputStream(sock.getOutputStream());
 
             /* Handshake the peer (noting that receive handshake will set their peerID) */
-            sendHandshake(dout);
-            recvHandshake(din);
+            sendHandshake();
+            recvHandshake();
 
             /* Set up reading */
             cin = new PeerConnectionIn(this, din);
@@ -82,18 +88,11 @@ public class Peer {
     }
 
 
-    void disconnect() {
-        cin.disconnect();
-        cout.disconnect();
-    }
-
-
     /**
      * Initiate handshake with the peer
-     * @param dout data output stream for the handshake bytes
-     * @throws IOException
+     * @throws IOException if an I/O error occurs writing to the output stream
      */
-    private void sendHandshake(DataOutputStream dout) throws IOException {
+    private void sendHandshake() throws IOException {
         //pstrlen -> send byte 19
         dout.write(19);
 
@@ -101,49 +100,60 @@ public class Peer {
         dout.write("BitTorrent protocol".getBytes(StandardCharsets.UTF_8));
 
         //reserved -> send 8 empty bytes
-        dout.writeLong(0);
+        byte[] reserved = new byte[8];
+        dout.write(reserved);
 
         //info_hash -> send hash from MetadataInfo
         dout.write(meta.getInfoHash());
 
         //peer_id -> send peer ID
         dout.write(myPeerID);
+
+        dout.flush();
     }
 
     /**
      * Set peerID after verifying integrity of received handshake
-     * @param din data input stream for the handshake bytes
-     * @throws IOException
+     * @throws IOException if an I/O error occurs reading from the input stream
      */
-    private void recvHandshake(DataInputStream din) throws IOException {
-        //verify that pstrlen is 19
+    private void recvHandshake() throws IOException {
+        /* Verify that pstrlen is 19 */
         int pstrlen = din.readInt();
         if (pstrlen != 19) {
             throw new IOException("Handshake pstrlen is invalid. Expected: 19. Received: " + pstrlen);
         };
 
-        //verify that pstr is "BitTorrent protocol"
-        byte[] pstr = new byte[19];
-        din.readFully(pstr);
-        if (Arrays.toString(pstr) != "BitTorrent protocol") {
-            throw new IOException("Handshake pstr is invalid. Expected: \"BitTorrent protocol\". Received: " + Arrays.toString(pstr));
+        /* Verify that pstr is "BitTorrent protocol" */
+        byte[] pstrBytes = new byte[19];
+        din.readFully(pstrBytes);
+        String pstr = new String(pstrBytes, StandardCharsets.UTF_8);
+        if (!pstr.equals("BitTorrent protocol")) {
+            throw new IOException("Handshake pstr is invalid. Expected: \"BitTorrent protocol\". Received: " + pstr);
         };
 
-        //verify that reserved bytes are empty
-        long reserved = din.readLong();
-        if (reserved != 0) {
-            throw new IOException("Handshake reserved bytes (displayed as long int) are invalid. Expected: 0. Received: " + reserved);
-        }
+        /* Read reserved bytes */
+        byte[] reserved = new byte[8];
+        din.readFully(reserved);
 
-        //verify that the info hash value matches what was expected
+        /* Verify that the info hash value matches what was expected */
         byte[] info_hash = new byte[20];
         din.readFully(info_hash);
         if (!Arrays.equals(meta.getInfoHash(), info_hash)) {
             throw new IOException("Handshake info hash is invalid. Expected: " + Arrays.toString(meta.getInfoHash()) + ". Received: " + Arrays.toString(info_hash));
         };
 
-        //naively take 20 bytes as their peerID, since the rest of the handshake was correct
+        /* Read peer id */
         peerID = new byte[20];
         din.readFully(peerID);
+    }
+
+
+    /**
+     * Sends a have message to the peer
+     * @param piece index of the completed piece
+     */
+    public void sendHave(int piece) {
+        if (state != null)
+            state.onHaveFinishedPiece(piece);
     }
 }

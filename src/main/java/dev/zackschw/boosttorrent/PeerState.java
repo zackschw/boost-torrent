@@ -2,8 +2,8 @@ package dev.zackschw.boosttorrent;
 
 public class PeerState {
     private final Peer peer;
-    private final PeerConnectionIn in;
-    private final PeerConnectionOut out;
+    private final PeerConnectionIn cin;
+    private final PeerConnectionOut cout;
     private final MetadataInfo meta;
     private final PeerCoordinator coordinator;
 
@@ -16,10 +16,10 @@ public class PeerState {
 
     private Piece workingPiece;
 
-    PeerState(Peer peer, PeerConnectionIn in, PeerConnectionOut out, MetadataInfo meta, PeerCoordinator coordinator) {
+    PeerState(Peer peer, PeerConnectionIn cin, PeerConnectionOut cout, MetadataInfo meta, PeerCoordinator coordinator) {
         this.peer = peer;
-        this.in = in;
-        this.out = out;
+        this.cin = cin;
+        this.cout = cout;
         this.meta = meta;
         this.coordinator = coordinator;
 
@@ -55,7 +55,9 @@ public class PeerState {
         /* Sanity check */
         if (piece <= meta.getNumPieces() && piece >= 0) {
             bitfield.setBit(piece);
-            recalculateInterest();
+            /* If we do not have the piece yet then we are now interested in the peer */
+            if (!coordinator.havePiece(piece))
+                setAmInterested(true);
         } else {
             peer.disconnect();
         }
@@ -69,12 +71,14 @@ public class PeerState {
             if (meta.getNumPieces() == 0) {
                 /* If we don't know the number of pieces, liberally accept the bitfield */
                 bitfield = new Bitvector(bitmap.length * 8, bitmap);
-                recalculateInterest();
+                /* Set initial interested status */
+                setAmInterested(coordinator.wantAnyPiece(bitfield));
             } else {
                 /* If we do know the number of pieces, ensure it is correct */
                 if (meta.getNumPieces() / 8 + (meta.getNumPieces() % 8 == 0 ? 0 : 1) == bitmap.length) {
                     bitfield = new Bitvector(meta.getNumPieces(), bitmap);
-                    recalculateInterest();
+                    /* Set initial interested status */
+                    setAmInterested(coordinator.wantAnyPiece(bitfield));
                 } else {
                     peer.disconnect();
                 }
@@ -118,10 +122,30 @@ public class PeerState {
 
 
     /**
-     * Recalculates if the client is interested in the peer
+     * On completed a piece, send HAVE to this peer
      */
-    void recalculateInterest() {
+    void onHaveFinishedPiece(int piece) {
+        /* TODO send cancels for any outstanding requests */
+
+        /* Send Have */
+        cout.sendHave(piece);
+
+        /* TODO add more requests and recalculate interest if no more requests are sent */
+    }
+
+
+    /**
+     * Starts requesting from a peer. Client must be unchoked before calling.
+     */
+    void startRequesting() {
         // TODO
+    }
+
+    /**
+     * Requests up to PIPELINE_REQUESTS outstanding requests
+     */
+    void addRequests() {
+
     }
 
 
@@ -151,5 +175,20 @@ public class PeerState {
      */
     boolean getPeerInterested() {
         return peerInterested;
+    }
+
+    /**
+     * Sets amInterested, ie if the client is interested in the peer.
+     * If the interest status changes, a respective INTERESTED or NOTINTERESTED message is sent.
+     * @param interested new interested status
+     */
+    void setAmInterested(boolean interested) {
+        if (!amInterested && interested) {
+            amInterested = true;
+            cout.sendInterested();
+        } else if (amInterested && !interested) {
+            amInterested = false;
+            cout.sendNotInterested();
+        }
     }
 }
