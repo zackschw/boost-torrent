@@ -3,6 +3,7 @@ package dev.zackschw.boosttorrent;
 import dev.zackschw.boosttorrent.tracker.TrackerCoordinator;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class PeerCoordinator {
@@ -106,7 +107,20 @@ public class PeerCoordinator {
      */
     public void onConnected(Peer peer) {
         synchronized (peers) {
-            peers.add(peer);
+            /* Check that this peer was not already added */
+            boolean present = false;
+            for (Peer p : peers) {
+                if (Arrays.equals(peer.getPeerID(), p.getPeerID())) {
+                    present = true;
+                    break;
+                }
+            }
+
+            if (!present) {
+                peers.add(peer);
+            } else {
+                peer.disconnect();
+            }
         }
     }
 
