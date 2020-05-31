@@ -1,5 +1,8 @@
 package dev.zackschw.boosttorrent;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class PeerState {
     private final Peer peer;
     private final PeerConnectionIn cin;
@@ -14,7 +17,7 @@ public class PeerState {
 
     private Bitvector bitfield; // the peer's bitfield
 
-    private Piece workingPiece;
+    private final List<Piece> workingPieces; // the pieces the client is requesting from this peer
 
     PeerState(Peer peer, PeerConnectionIn cin, PeerConnectionOut cout, MetadataInfo meta, PeerCoordinator coordinator) {
         this.peer = peer;
@@ -27,6 +30,8 @@ public class PeerState {
         peerChoking = true;
         amInterested = false;
         peerInterested = false;
+
+        workingPieces = new ArrayList<>(2);
     }
 
     /**
@@ -34,6 +39,14 @@ public class PeerState {
      */
     void onChokeMessage(boolean choking) {
         peerChoking = choking;
+
+        if (peerChoking) {
+            // TODO clear outstanding requests
+        }
+
+        if (!peerChoking && amInterested) {
+            startRequesting();
+        }
     }
 
     /**
@@ -61,7 +74,7 @@ public class PeerState {
         if (piece <= meta.getNumPieces() && piece >= 0) {
             bitfield.setBit(piece);
             /* If we do not have the piece yet then we are now interested in the peer */
-            if (!coordinator.havePiece(piece))
+            if (!amInterested && !coordinator.havePiece(piece))
                 setAmInterested(true);
         } else {
             peer.disconnect();
@@ -94,6 +107,7 @@ public class PeerState {
         }
     }
 
+
     /**
      * On receive REQUEST message
      */
@@ -102,27 +116,54 @@ public class PeerState {
     }
 
     /**
+     * On receive CANCEL message
+     */
+    void onCancelMessage(int piece, int begin, int length) {
+
+    }
+
+
+    /**
      * On receive PIECE message
      */
-    void onPieceMessage(int piece, int begin) {
+    void onPieceMessage(Piece piece, int begin) {
+        piece.onReceivedBlock(begin);
 
+        // TODO when to start requesting next piece?
+        if (piece.getNumReceivedBlocks() == piece.length*3/4)
+            requestNextPiece();
+
+        if (piece.receivedAllBlocks()) {
+            /* Remove from working pieces */
+            synchronized (workingPieces) {
+                workingPieces.remove(piece);
+            }
+
+            /* Check hash */
+            if (piece.checkHash()) {
+                coordinator.onFinishedPiece(piece);
+            } else {
+                /* Disconnect on bad hash */
+                peer.disconnect();
+            }
+        }
     }
 
     /**
      * Returns the Piece object that the client is requesting from this peer, specified by the piece index.
      * @param index zero-based index of the piece
-     * @return the piece object
+     * @return the piece object, or null if it does not exist
      */
     Piece getWorkingPiece(int index) {
-        // TODO
-        return workingPiece;
-    }
+        synchronized (workingPieces) {
+            for (Piece p: workingPieces) {
+                if (p.index == index) {
+                    return p;
+                }
+            }
+        }
 
-    /**
-     * On receive CANCEL message
-     */
-    void onCancelMessage(int piece, int begin, int length) {
-
+        return null;
     }
 
 
@@ -135,22 +176,48 @@ public class PeerState {
         /* Send Have */
         cout.sendHave(piece);
 
-        /* TODO add more requests and recalculate interest if no more requests are sent */
+        /* Recalculate interest */
+        setAmInterested(coordinator.wantAnyPiece(bitfield));
     }
 
 
     /**
      * Starts requesting from a peer. Client must be unchoked before calling.
      */
-    void startRequesting() {
-        // TODO
+    private void startRequesting() {
+        /* XXX get previously worked on piece? */
+
+        requestNextPiece();
     }
 
     /**
      * Requests up to PIPELINE_REQUESTS outstanding requests
      */
-    void addRequests() {
+    private void requestNextPiece() {
+        /* Get next piece from coordinator */
+        int index = coordinator.getNextPieceToRequest(bitfield);
+        if (index == -1) {
+            // TODO uninterested
+            return;
+        }
+        int length = index == meta.getNumPieces() - 1 ? meta.getLastPieceLength() : meta.getPieceLength();
+        Piece piece = new Piece(index, length, meta.getPieceHash(index));
 
+        /* Add to working pieces */
+        synchronized (workingPieces) {
+            workingPieces.add(piece);
+        }
+
+        /* Send all requests except last request */
+        int lastOff = piece.length - Piece.BLOCK_LENGTH;
+        for (int begin=0; begin < lastOff; begin += Piece.BLOCK_LENGTH) {
+            cout.sendRequest(index, begin, Piece.BLOCK_LENGTH);
+        }
+
+        /* Send last request */
+        int lastLen = index == meta.getNumPieces() - 1 ?
+                meta.getLastPieceLength() - Piece.BLOCK_LENGTH*(meta.getNumPieces() - 1) : Piece.BLOCK_LENGTH;
+        cout.sendRequest(index, lastOff, lastLen);
     }
 
 

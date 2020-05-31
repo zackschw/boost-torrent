@@ -84,7 +84,7 @@ public class PeerConnectionIn {
                             din.readFully(block);
                         }
 
-                        state.onPieceMessage(index, begin);
+                        state.onPieceMessage(piece, begin);
                         break;
                     case Message.CANCEL:
                         index = din.readInt();

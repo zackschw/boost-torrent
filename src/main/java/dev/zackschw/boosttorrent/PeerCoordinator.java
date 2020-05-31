@@ -65,11 +65,11 @@ public class PeerCoordinator {
 
     /**
      * Returns true if the client has the given piece, otherwise false.
-     * @param piece piece to check for
+     * @param index piece to check for
      */
-    public boolean havePiece(int piece) {
+    public boolean havePiece(int index) {
         Bitvector myBitfield = storage.getMyBitfield();
-        return myBitfield.isSet(piece);
+        return myBitfield.isSet(index);
     }
 
     /**
@@ -97,8 +97,17 @@ public class PeerCoordinator {
         // TODO
     }
 
-    public void gotPiece() {
-        // TODO
+    /**
+     * Writes finished piece to storage and sends Have message to all peers
+     */
+    public void onFinishedPiece(Piece piece) {
+        // TODO write to storage
+
+        synchronized (peers) {
+            for (Peer p : peers) {
+                p.sendHave(piece.index);
+            }
+        }
     }
 
     /**
@@ -141,6 +150,16 @@ public class PeerCoordinator {
                 }
             }
         }
+    }
+
+    /**
+     * Returns a new piece index to request that the client does not have, and that the peer does have.
+     * @param peerBitfield the bitfield of the peer to send the requests to.
+     * @return the piece index, or -1 if no such piece exists
+     */
+    public int getNextPieceToRequest(Bitvector peerBitfield) {
+        // TODO
+        return -1;
     }
 
     public byte[] getMyPeerID() {

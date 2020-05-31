@@ -129,7 +129,7 @@ public class MetadataInfo {
         return returnList;
     }
 
-    public byte[][] getHashArray(Map<String, BValue> infoMap, int lenHash) throws BencodeException {
+    private byte[][] getHashArray(Map<String, BValue> infoMap, int lenHash) throws BencodeException {
         byte[] allHashes = getRequiredValue(infoMap, "pieces").getBytes();
         byte[][] returnArray = new byte[allHashes.length / lenHash][];
 
@@ -160,8 +160,8 @@ public class MetadataInfo {
         return pieceHashes.length;
     }
 
-    public boolean comparePieceHash(int index, byte[] fullPieceBytes) {
-        return Arrays.equals(pieceHashes[index], hash(fullPieceBytes));
+    public byte[] getPieceHash(int index) {
+        return pieceHashes[index];
     }
 
     public String getName() {
