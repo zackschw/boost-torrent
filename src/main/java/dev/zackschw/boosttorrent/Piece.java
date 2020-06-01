@@ -51,6 +51,16 @@ public class Piece {
         return count;
     }
 
+    /**
+     * Returns whether the block specified by begin has already been received.
+     */
+    public boolean isBlockReceived(int begin) {
+        return receivedBlocks.isSet(begin/BLOCK_LENGTH);
+    }
+
+    /**
+     * Returns whether all blocks of the piece have already been received.
+     */
     public boolean receivedAllBlocks() {
         return receivedBlocks.isComplete();
     }

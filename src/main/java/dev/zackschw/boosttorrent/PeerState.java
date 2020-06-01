@@ -18,6 +18,7 @@ public class PeerState {
     private Bitvector bitfield; // the peer's bitfield
 
     private final List<Piece> workingPieces; // the pieces the client is requesting from this peer
+    private boolean resendRequests; // resend requests after being choked and then unchoked
 
     PeerState(Peer peer, PeerConnectionIn cin, PeerConnectionOut cout, MetadataInfo meta, PeerCoordinator coordinator) {
         this.peer = peer;
@@ -32,6 +33,7 @@ public class PeerState {
         peerInterested = false;
 
         workingPieces = new ArrayList<>(2);
+        resendRequests = false;
     }
 
     /**
@@ -41,7 +43,7 @@ public class PeerState {
         peerChoking = choking;
 
         if (peerChoking) {
-            // TODO clear outstanding requests
+            resendRequests = true;
         }
 
         if (!peerChoking && amInterested) {
@@ -127,10 +129,16 @@ public class PeerState {
      * On receive PIECE message
      */
     void onPieceMessage(Piece piece, int begin) {
+        if (piece == null) {
+            System.out.println("Received unexpected piece.");
+            peer.disconnect();
+            return;
+        }
+
         piece.onReceivedBlock(begin);
 
         // TODO when to start requesting next piece?
-        if (piece.getNumReceivedBlocks() == piece.length*3/4)
+        if (!peerChoking && piece.getNumReceivedBlocks() == piece.length*3/4)
             requestNextPiece();
 
         if (piece.receivedAllBlocks()) {
@@ -185,13 +193,34 @@ public class PeerState {
      * Starts requesting from a peer. Client must be unchoked before calling.
      */
     private void startRequesting() {
-        /* XXX get previously worked on piece? */
+        /* Resend requests if unchoked after being choked */
+        if (resendRequests) {
+            synchronized (workingPieces) {
+                for (Piece piece: workingPieces) {
+                    /* Send all outstanding requests except last request */
+                    int lastOff = piece.length - Piece.BLOCK_LENGTH;
+                    for (int begin=0; begin < lastOff; begin += Piece.BLOCK_LENGTH) {
+                        if (!piece.isBlockReceived(begin))
+                            cout.sendRequest(piece.index, begin, Piece.BLOCK_LENGTH);
+                    }
 
-        requestNextPiece();
+                    /* Send outstanding last request */
+                    int lastLen = piece.index == meta.getNumPieces() - 1 ?
+                            meta.getLastPieceLength() - Piece.BLOCK_LENGTH*(meta.getNumPieces() - 1) : Piece.BLOCK_LENGTH;
+                    if (!piece.isBlockReceived(lastOff))
+                        cout.sendRequest(piece.index, lastOff, lastLen);
+                }
+            }
+
+            resendRequests = false;
+        } else {
+            requestNextPiece();
+        }
     }
 
     /**
-     * Requests up to PIPELINE_REQUESTS outstanding requests
+     * Requests all blocks in the next piece given by the coordinator.
+     * Should only be called when the client is unchoked.
      */
     private void requestNextPiece() {
         /* Get next piece from coordinator */
@@ -211,13 +240,13 @@ public class PeerState {
         /* Send all requests except last request */
         int lastOff = piece.length - Piece.BLOCK_LENGTH;
         for (int begin=0; begin < lastOff; begin += Piece.BLOCK_LENGTH) {
-            cout.sendRequest(index, begin, Piece.BLOCK_LENGTH);
+            cout.sendRequest(piece.index, begin, Piece.BLOCK_LENGTH);
         }
 
         /* Send last request */
-        int lastLen = index == meta.getNumPieces() - 1 ?
+        int lastLen = piece.index == meta.getNumPieces() - 1 ?
                 meta.getLastPieceLength() - Piece.BLOCK_LENGTH*(meta.getNumPieces() - 1) : Piece.BLOCK_LENGTH;
-        cout.sendRequest(index, lastOff, lastLen);
+        cout.sendRequest(piece.index, lastOff, lastLen);
     }
 
 
@@ -258,6 +287,9 @@ public class PeerState {
         if (!amInterested && interested) {
             amInterested = true;
             cout.sendInterested();
+
+            if (amInterested && !peerChoking)
+                startRequesting();
         } else if (amInterested && !interested) {
             amInterested = false;
             cout.sendNotInterested();
