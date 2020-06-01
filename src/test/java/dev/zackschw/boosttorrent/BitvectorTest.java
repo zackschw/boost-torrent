@@ -50,14 +50,39 @@ class BitvectorTest {
 
     @Test
     void isEmpty() {
-        byte[] b1 = new byte[] {0, 0, 9};
+        byte[] b1 = new byte[] {0, 0, (byte)0b10000000};
         byte[] b2 = new byte[] {0, 0, 0};
 
-        Bitvector bitvector1 = new Bitvector(24, b1);
-        Bitvector bitvector2 = new Bitvector(17, b2);
+        Bitvector bitvector1 = new Bitvector(17, b1);
+        Bitvector bitvector2 = new Bitvector(23, b2);
+        Bitvector bitvector3 = new Bitvector(100);
 
         assertFalse(bitvector1.isEmpty());
         assertTrue(bitvector2.isEmpty());
+        assertTrue(bitvector3.isEmpty());
+        bitvector3.setBit(0);
+        assertFalse(bitvector3.isEmpty());
+    }
+
+    @Test
+    void isComplete() {
+        byte[] b1 = new byte[] { (byte) 255, (byte) 255, (byte) 0b10000000 };
+        byte[] b2 = new byte[] { (byte) 255, (byte) 255, (byte) 0b11111100 };
+
+        Bitvector bitvector1 = new Bitvector(17, b1);
+        Bitvector bitvector2 = new Bitvector(22, b2);
+        Bitvector bitvector3 = new Bitvector(23, b2);
+        assertTrue(bitvector1.isComplete());
+        assertTrue(bitvector2.isComplete());
+        assertFalse(bitvector3.isComplete());
+
+        Bitvector bitvector4 = new Bitvector(8);
+        assertFalse(bitvector4.isComplete());
+        for(int i=0; i < 7; i++)
+            bitvector4.setBit(i);
+        assertFalse(bitvector4.isComplete());
+        bitvector4.setBit(7);
+        assertTrue(bitvector4.isComplete());
     }
 
     @Test
