@@ -16,6 +16,7 @@ public class PeerCoordinator {
 
     private final List<PeerAddress> potentialPeers;
     private final List<Peer> peers;
+    private final List<Integer> outstandingPieces;
 
     private static int MAX_WANTED_PEERS = 30;
     private static int MAX_PEERS = 50;
@@ -27,6 +28,7 @@ public class PeerCoordinator {
 
         this.peers = new ArrayList<>(MAX_PEERS);
         this.potentialPeers = new ArrayList<>();
+        this.outstandingPieces = new ArrayList<>();
     }
 
     /**
@@ -103,6 +105,12 @@ public class PeerCoordinator {
     public void onFinishedPiece(Piece piece) {
         // TODO write to storage
 
+        /* Remove from outstanding pieces */
+        synchronized (outstandingPieces) {
+            outstandingPieces.remove(Integer.valueOf(piece.index));
+        }
+
+        /* Send have to all peers */
         synchronized (peers) {
             for (Peer p : peers) {
                 p.sendHave(piece.index);
@@ -158,7 +166,17 @@ public class PeerCoordinator {
      * @return the piece index, or -1 if no such piece exists
      */
     public int getNextPieceToRequest(Bitvector peerBitfield) {
-        // TODO
+        Bitvector myBitfield = storage.getMyBitfield();
+
+        /* Find a piece that has not been requested yet and that the peer has */
+        synchronized (outstandingPieces) {
+            for (int i = 0; i < myBitfield.getSize(); i++) {
+                if (!myBitfield.isSet(i) && peerBitfield.isSet(i) && !outstandingPieces.contains(i)) {
+                    return i;
+                }
+            }
+        }
+
         return -1;
     }
 
