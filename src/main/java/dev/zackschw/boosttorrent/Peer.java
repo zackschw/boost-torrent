@@ -10,11 +10,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class Peer {
-    private final PeerAddress peerAddress;
     private final MetadataInfo meta;
     private final byte[] myPeerID;
 
     private Socket sock;
+    private PeerAddress peerAddress;
     private DataInputStream din;
     private DataOutputStream dout;
 
@@ -26,9 +26,24 @@ public class Peer {
 
     /**
      * Creates an unconnected peer.
+     * @param peerAddress the address to connect to when the connection is started.
+     * @param meta the meta info of the torrent
+     * @param myPeerID the client's own 20-byte peerID
      */
     public Peer(PeerAddress peerAddress, MetadataInfo meta, byte[] myPeerID) {
         this.peerAddress = peerAddress;
+        this.meta = meta;
+        this.myPeerID = myPeerID;
+    }
+
+    /**
+     * Creates a connected peer.
+     * @param sock the already connected socket of the peer
+     * @param meta the meta info of the torrent
+     * @param myPeerID the client's own 20-byte peerID
+     */
+    public Peer(Socket sock, MetadataInfo meta, byte[] myPeerID) {
+        this.sock = sock;
         this.meta = meta;
         this.myPeerID = myPeerID;
     }
@@ -63,9 +78,17 @@ public class Peer {
         }
     }
 
+    /**
+     * Runs the connection by handshaking the peer and listening for messages. Requests are sent after being unchoked.
+     * @param coordinator the peer coordinator used for callbacks
+     * @param myBitfield the client's bitfield of pieces
+     */
     public void runConnection(PeerCoordinator coordinator, Bitvector myBitfield) {
         try {
-            sock = new Socket(peerAddress.getAddress(), peerAddress.getPort());
+            if (sock == null) {
+                // Connect to an unconnected peer
+                sock = new Socket(peerAddress.getAddress(), peerAddress.getPort());
+            }
             sock.setSoTimeout(SO_TIMEOUT);
             din = new DataInputStream(sock.getInputStream());
             dout = new DataOutputStream(sock.getOutputStream());
