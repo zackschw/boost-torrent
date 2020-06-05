@@ -9,15 +9,13 @@ import java.util.List;
 
 public class TrackerCoordinator {
     private final MetadataInfo meta;
-    private final int port;
     private final PeerCoordinator coordinator;
 
     private final List<TrackerInfo> trackers = new ArrayList<>();
 
 
-    public TrackerCoordinator(MetadataInfo meta, int port, PeerCoordinator coordinator) {
+    public TrackerCoordinator(MetadataInfo meta, PeerCoordinator coordinator) {
         this.meta = meta;
-        this.port = port;
         this.coordinator = coordinator;
 
         if (meta.getAnnounceList() == null) {
@@ -33,9 +31,9 @@ public class TrackerCoordinator {
 
     private void addTracker(String url) {
         if (url.startsWith("udp://"))
-            trackers.add(new UDPTrackerInfo(url, meta.getInfoHash(), port, coordinator));
+            trackers.add(new UDPTrackerInfo(url, meta.getInfoHash(), coordinator));
         else
-            trackers.add(new HTTPTrackerInfo(url, meta.getInfoHash(), port, coordinator));
+            trackers.add(new HTTPTrackerInfo(url, meta.getInfoHash(), coordinator));
     }
 
 

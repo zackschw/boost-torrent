@@ -19,7 +19,6 @@ import java.util.Map;
 public class HTTPTrackerInfo implements TrackerInfo {
     private final String url;
     private final byte[] infoHash;
-    private final int port;
 
     private final PeerCoordinator coordinator;
 
@@ -27,11 +26,9 @@ public class HTTPTrackerInfo implements TrackerInfo {
     private final List<PeerAddress> peers;
 
 
-    public HTTPTrackerInfo(String url, byte[] infoHash, int port, PeerCoordinator coordinator) {
+    public HTTPTrackerInfo(String url, byte[] infoHash, PeerCoordinator coordinator) {
         this.url = url;
         this.infoHash = infoHash;
-        this.port = port;
-
         this.coordinator = coordinator;
 
         peers = new ArrayList<>();
@@ -93,6 +90,7 @@ public class HTTPTrackerInfo implements TrackerInfo {
     private boolean doRequest(String event) throws IOException {
         String infoHashStr = urlEncode(infoHash);
         String myPeerIDStr = urlEncode(coordinator.getMyPeerID());
+        int port = coordinator.getLocalPort();
         long downloaded = coordinator.getDownloaded();
         long uploaded = coordinator.getUploaded();
         long left = coordinator.getLeft();

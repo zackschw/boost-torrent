@@ -2,6 +2,7 @@ package dev.zackschw.boosttorrent;
 
 import dev.zackschw.boosttorrent.tracker.TrackerCoordinator;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -10,6 +11,9 @@ public class PeerCoordinator {
     private final byte[] myPeerID;
     private final MetadataInfo meta;
     private final Storage storage;
+    private final PeerAcceptor peerAcceptor;
+    private final TrackerCoordinator tracker;
+    private int listenerPort;
     private long uploaded;
     private long downloaded;
     private long left;
@@ -26,15 +30,22 @@ public class PeerCoordinator {
         this.meta = meta;
         this.storage = storage;
 
+        this.peerAcceptor = new PeerAcceptor(this, meta, myPeerID);
+        this.tracker = new TrackerCoordinator(meta, this);
         this.peers = new ArrayList<>(MAX_PEERS);
         this.potentialPeers = new ArrayList<>();
         this.outstandingPieces = new ArrayList<>();
     }
 
     /**
-     * Search for peers and initiate connections with up to MAX_WANTED_PEERS peers.
+     * Binds to a port to listen for connections, Searches for peers via tracker,
+     * and initiate connections with up to MAX_WANTED_PEERS peers.
+     * @throws IOException if I/O error occurs binding to a port to listen for connections
      */
-    public void initiateConnections(TrackerCoordinator tracker) {
+    public void initiateConnections() throws IOException {
+        /* Start listener */
+        listenerPort = peerAcceptor.runListener();
+
         /* Query tracker */
         List<PeerAddress> received = tracker.sendStarted();
         potentialPeers.addAll(received);
@@ -178,6 +189,10 @@ public class PeerCoordinator {
         }
 
         return -1;
+    }
+
+    public int getLocalPort() {
+        return listenerPort;
     }
 
     public byte[] getMyPeerID() {

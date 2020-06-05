@@ -18,7 +18,6 @@ import java.util.Random;
 public class UDPTrackerInfo implements TrackerInfo {
     private final String url; // eg "udp://tracker.leechers-paradise.org:6969"
     private final byte[] infoHash;
-    private final int port;
 
     private final PeerCoordinator coordinator;
 
@@ -26,13 +25,12 @@ public class UDPTrackerInfo implements TrackerInfo {
     private static Random random = new Random();
 
 
-    public UDPTrackerInfo(String url, byte[] infoHash, int port, PeerCoordinator coordinator) {
+    public UDPTrackerInfo(String url, byte[] infoHash, PeerCoordinator coordinator) {
         if (!url.startsWith("udp://"))
             throw new IllegalArgumentException("Invalid UDPTracker URL: " + url);
 
         this.url = url;
         this.infoHash = infoHash;
-        this.port = port;
 
         this.coordinator = coordinator;
 
@@ -160,7 +158,7 @@ public class UDPTrackerInfo implements TrackerInfo {
                 .putInt(0) // address DEFAULT 0
                 .putInt(MY_KEY)
                 .putInt(-1) // num_want DEFAULT -1
-                .putShort((short) this.port)
+                .putShort((short) coordinator.getLocalPort())
                 .array();
         DatagramPacket announcePacket = new DatagramPacket(announceBuffer, announceBuffer.length, address, port);
         socket.send(announcePacket);
