@@ -61,7 +61,9 @@ public class PeerAcceptor {
 
                 /* Add to peers */
                 Peer peer = new Peer(newPeerSock, meta, myPeerID);
-                coordinator.addPeer(peer);
+                if (!coordinator.addPeer(peer)) {
+                    newPeerSock.close();
+                }
 
             }
         } catch (IOException ignored) {

@@ -189,6 +189,27 @@ public class Peer {
             state.onHaveFinishedPiece(piece);
     }
 
+    /**
+     * Gets the number of bytes downloaded from this peer since last call to resetUploadedDownloaded()
+     */
+    public long getDownloaded() {
+        return -1; // TODO
+    }
+
+    /**
+     * Gets the number of bytes uploaded to this peer since last call to resetUploadedDownloaded()
+     */
+    public long getUploaded() {
+        return -1; // TODO
+    }
+
+    /**
+     * Resets the statistics of this peer's uploaded to and downloaded from bytes. Used for unchoking algorithm.
+     */
+    public void resetUploadedDownloaded() {
+        // TODO
+    }
+
 
     private static int SO_TIMEOUT = 120000; // 2 min
 }

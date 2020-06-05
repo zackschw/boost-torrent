@@ -30,11 +30,12 @@ public class PeerCoordinator {
         this.meta = meta;
         this.storage = storage;
 
-        this.peerAcceptor = new PeerAcceptor(this, meta, myPeerID);
-        this.tracker = new TrackerCoordinator(meta, this);
-        this.peers = new ArrayList<>(MAX_PEERS);
-        this.potentialPeers = new ArrayList<>();
-        this.outstandingPieces = new ArrayList<>();
+        peerAcceptor = new PeerAcceptor(this, meta, myPeerID);
+        tracker = new TrackerCoordinator(meta, this);
+        peers = new ArrayList<>(MAX_PEERS);
+        potentialPeers = new ArrayList<>();
+        outstandingPieces = new ArrayList<>();
+        left = meta.getTotalFileBytes();
     }
 
     /**
@@ -64,16 +65,18 @@ public class PeerCoordinator {
     /**
      * Runs peer connection in a new thread. Peer will be added to list of active peers upon successful handshake,
      * via onConnected().
+     * @return true if the client attempted to add the peer, false if the client is already connected to MAX_PEERS peers
      */
-    public void addPeer(Peer peer) {
+    public boolean addPeer(Peer peer) {
         /* Check that we want connections */
         if (peers.size() >= MAX_PEERS) {
-            return;
+            return false;
         }
 
         /* Run connection in a new thread */
         Thread t = new Thread(() -> peer.runConnection(this, storage.getMyBitfield()));
         t.start();
+        return true;
     }
 
     /**
@@ -191,23 +194,61 @@ public class PeerCoordinator {
         return -1;
     }
 
+    /**
+     * @return the port the client is listening for connections on
+     */
     public int getLocalPort() {
         return listenerPort;
     }
 
+    /**
+     * @return the client's 20-byte peer id
+     */
     public byte[] getMyPeerID() {
         return myPeerID;
     }
 
+    /**
+     * @return the total number of bytes uploaded to peers since starting this download
+     */
     public long getUploaded() {
         return uploaded;
     }
 
+    /**
+     * @return the total number of bytes downloaded from peers since starting this download
+     */
     public long getDownloaded() {
         return downloaded;
     }
 
+    /**
+     * @return the total number of bytes left to download until all pieces are complete
+     */
     public long getLeft() {
         return left;
+    }
+
+    /**
+     * Adds to the statistic of the number of bytes uploaded to peers.
+     * @param uploaded number of bytes uploaded
+     */
+    public void incrementUploaded(int uploaded) {
+        // TODO
+    }
+
+    /**
+     * Adds to the statistic of the number of bytes downloaded from peers.
+     * @param downloaded number of bytes downloaded
+     */
+    public void incrementDownloaded(int downloaded) {
+        // TODO
+    }
+
+    /**
+     * Resets the statistics of all peer's uploaded to and downloaded from bytes. Used for unchoking algorithm.
+     */
+    public void resetPeersUploadedDownloaded() {
+        // TODO
     }
 }

@@ -15,6 +15,9 @@ public class PeerState {
     private boolean amInterested; // the client is interested in the peer
     private boolean peerInterested; // the peer is interested in the client
 
+    private long downloaded;
+    private long uploaded;
+
     private Bitvector bitfield; // the peer's bitfield
 
     private final List<Piece> workingPieces; // the pieces the client is requesting from this peer
@@ -294,5 +297,44 @@ public class PeerState {
             amInterested = false;
             cout.sendNotInterested();
         }
+    }
+
+    /**
+     * Gets the number of bytes downloaded from this peer since last call to resetUploadedDownloaded()
+     */
+    long getDownloaded() {
+        return downloaded;
+    }
+
+    /**
+     * Gets the number of bytes uploaded to this peer since last call to resetUploadedDownloaded()
+     */
+    long getUploaded() {
+        return uploaded;
+    }
+
+    /**
+     * Adds to the statistic of the number of bytes uploaded to this peer.
+     * @param downloaded number of bytes downloaded
+     */
+    void incrementDownloaded(int downloaded) {
+        // TODO
+        // TODO call when downloading a piece
+    }
+
+    /**
+     * Adds to the statistic of the number of bytes uploaded to this peer.
+     * @param uploaded number of bytes uploaded
+     */
+    void incrementUploaded(int uploaded) {
+        // TODO
+        // TODO call when uploading a piece
+    }
+
+    /**
+     * Resets the statistics of this peer's uploaded to and downloaded from bytes. Used for unchoking algorithm.
+     */
+    void resetUploadedDownloaded() {
+        // TODO
     }
 }
