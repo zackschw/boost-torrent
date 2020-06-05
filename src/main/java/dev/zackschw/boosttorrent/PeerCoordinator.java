@@ -13,6 +13,7 @@ public class PeerCoordinator {
     private final Storage storage;
     private final PeerAcceptor peerAcceptor;
     private final TrackerCoordinator tracker;
+    private final Fulfiller fulfiller;
     private int listenerPort;
     private long uploaded;
     private long downloaded;
@@ -32,6 +33,7 @@ public class PeerCoordinator {
 
         peerAcceptor = new PeerAcceptor(this, meta, myPeerID);
         tracker = new TrackerCoordinator(meta, this);
+        fulfiller = new Fulfiller(this);
         peers = new ArrayList<>(MAX_PEERS);
         potentialPeers = new ArrayList<>();
         outstandingPieces = new ArrayList<>();
@@ -46,6 +48,9 @@ public class PeerCoordinator {
     public void initiateConnections() throws IOException {
         /* Start listener */
         listenerPort = peerAcceptor.runListener();
+
+        /* Start fulfiller */
+        fulfiller.runFulfiller();
 
         /* Query tracker */
         List<PeerAddress> received = tracker.sendStarted();
@@ -192,6 +197,24 @@ public class PeerCoordinator {
         }
 
         return -1;
+    }
+
+    /**
+     * Returns a list of peers containing all peers that are currently unchoked by the client.
+     * If no peers are unchoked, the returned list will be of size 0.
+     */
+    public List<Peer> getPeersAmUnchoking() {
+        List<Peer> unchokingList = new ArrayList<>(4);
+
+        synchronized (peers) {
+            for (Peer p: peers) {
+                if (!p.getAmChoking()) {
+                    unchokingList.add(p);
+                }
+            }
+        }
+
+        return unchokingList;
     }
 
     /**

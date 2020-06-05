@@ -210,6 +210,13 @@ public class Peer {
         // TODO
     }
 
+    /**
+     * @return boolean representing if the client is choking the peer
+     */
+    public boolean getAmChoking() {
+        return state.getAmChoking();
+    }
+
 
     private static int SO_TIMEOUT = 120000; // 2 min
 }
