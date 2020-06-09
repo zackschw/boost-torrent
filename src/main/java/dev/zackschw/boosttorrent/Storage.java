@@ -8,6 +8,7 @@ public class Storage {
 
     private final Bitvector myBitfield;
     private final RandomAccessFile[] files;
+    private final Object lock;
 
     /**
      * Creates a Storage for writing pieces to, and reading pieces from.
@@ -18,6 +19,7 @@ public class Storage {
 
         myBitfield = new Bitvector(meta.getNumPieces());
         files = new RandomAccessFile[meta.getFiles().size()];
+        lock = new Object();
     }
 
     public Bitvector getMyBitfield() {
@@ -42,7 +44,25 @@ public class Storage {
      * @param piece the finished piece received from peers, with correct hash.
      */
     public void writePiece(Piece piece) {
-        // TODO
+        long pieceStartPos = piece.index * meta.getPieceLength();
+        long pieceEndPos = pieceStartPos + piece.length;
+
+        long fileStartPos = 0;
+        long fileEndPos = 0;
+        int i=0;
+        synchronized (lock) {
+            /* Find the file where the piece begins */
+            do {
+                fileEndPos = meta.getFiles().get(i).getLength();
+                i++;
+            } while (!(pieceStartPos >= fileStartPos && pieceStartPos < fileEndPos));
+
+            int bytesWritten=0;
+            while (bytesWritten < piece.length) {
+                /* Write all the bytes we can to this file, then go to the next and repeat */
+                // TODO
+            }
+        }
     }
 
     /**
