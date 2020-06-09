@@ -8,7 +8,6 @@ public class Storage {
 
     private final Bitvector myBitfield;
     private final RandomAccessFile[] files;
-    private final Object lock;
 
     /**
      * Creates a Storage for writing pieces to, and reading pieces from.
@@ -19,7 +18,6 @@ public class Storage {
 
         myBitfield = new Bitvector(meta.getNumPieces());
         files = new RandomAccessFile[meta.getFiles().size()];
-        lock = new Object();
     }
 
     public Bitvector getMyBitfield() {
@@ -51,7 +49,7 @@ public class Storage {
         long fileEndPos = 0;
         int i=0;
         try {
-            synchronized (lock) {
+            synchronized (this) {
                 /* Find the file where the piece begins */
                 do {
                     fileStartPos = fileEndPos;
