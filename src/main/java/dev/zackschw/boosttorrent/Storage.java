@@ -50,18 +50,35 @@ public class Storage {
         long fileStartPos = 0;
         long fileEndPos = 0;
         int i=0;
-        synchronized (lock) {
-            /* Find the file where the piece begins */
-            do {
-                fileEndPos = meta.getFiles().get(i).getLength();
-                i++;
-            } while (!(pieceStartPos >= fileStartPos && pieceStartPos < fileEndPos));
+        try {
+            synchronized (lock) {
+                /* Find the file where the piece begins */
+                do {
+                    fileStartPos = fileEndPos;
+                    fileEndPos += meta.getFiles().get(i).getLength();
+                    i++;
+                } while (!(pieceStartPos >= fileStartPos && pieceStartPos < fileEndPos));
 
-            int bytesWritten=0;
-            while (bytesWritten < piece.length) {
                 /* Write all the bytes we can to this file, then go to the next and repeat */
-                // TODO
+                int bytesWritten = 0;
+                while (bytesWritten < piece.length) {
+                    /* Write whichever is shorter: to end of file or to end of the piece */
+                    long writeEndPos = Math.min(pieceEndPos, fileEndPos);
+                    int bytesToWrite = (int) (writeEndPos - (pieceStartPos + bytesWritten));
+
+                    /* Write */
+                    files[i].seek(pieceStartPos + bytesWritten - fileStartPos);
+                    files[i].write(piece.bytes, bytesWritten, bytesToWrite);
+                    bytesWritten += bytesToWrite;
+
+                    /* Next file */
+                    i++;
+                    fileStartPos = fileEndPos;
+                    fileEndPos += meta.getFiles().get(i).getLength();
+                }
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
