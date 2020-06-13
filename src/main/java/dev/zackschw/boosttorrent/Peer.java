@@ -193,30 +193,34 @@ public class Peer {
      * Gets the number of bytes downloaded from this peer since last call to resetUploadedDownloaded()
      */
     public long getDownloaded() {
-        return -1; // TODO
+        return state == null ? 0 : state.getDownloaded();
     }
 
     /**
      * Gets the number of bytes uploaded to this peer since last call to resetUploadedDownloaded()
      */
     public long getUploaded() {
-        return -1; // TODO
+        return state == null ? 0 : state.getUploaded();
     }
 
     /**
      * Resets the statistics of this peer's uploaded to and downloaded from bytes. Used for unchoking algorithm.
      */
     public void resetUploadedDownloaded() {
-        // TODO
+        if (state != null)
+            state.resetUploadedDownloaded();
     }
 
     /**
      * @return boolean representing if the client is choking the peer
      */
     public boolean getAmChoking() {
-        return state.getAmChoking();
+        if (state != null)
+            return state.getAmChoking();
+        else
+            return false;
     }
 
 
-    private static int SO_TIMEOUT = 120000; // 2 min
+    private static final int SO_TIMEOUT = 120000; // 2 min
 }

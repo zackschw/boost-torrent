@@ -80,5 +80,5 @@ public class Piece {
         return Arrays.equals(md.digest(bytes), hash);
     }
 
-    public static int BLOCK_LENGTH = 1<<14;
+    public static final int BLOCK_LENGTH = 1<<14;
 }

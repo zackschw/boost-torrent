@@ -28,13 +28,19 @@ public class BoostTorrentApplication {
 
         byte[] peerID = createPeerID();
         Storage storage = new Storage(meta);
+        try {
+            storage.createFiles();
+        } catch (IOException e) {
+            throw new RuntimeException("Error creating files: " + e);
+        }
+
         PeerCoordinator coordinator = new PeerCoordinator(peerID, meta, storage);
 
         /* Run */
         try {
             coordinator.initiateConnections();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Error binding port: " + e);
         }
     }
 

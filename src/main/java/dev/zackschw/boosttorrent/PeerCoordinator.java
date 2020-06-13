@@ -23,8 +23,8 @@ public class PeerCoordinator {
     private final List<Peer> peers;
     private final List<Integer> outstandingPieces;
 
-    private static int MAX_WANTED_PEERS = 30;
-    private static int MAX_PEERS = 50;
+    private static final int MAX_WANTED_PEERS = 30;
+    private static final int MAX_PEERS = 50;
 
     public PeerCoordinator(byte[] myPeerID, MetadataInfo meta, Storage storage) {
         this.myPeerID = myPeerID;
@@ -139,6 +139,9 @@ public class PeerCoordinator {
                 p.sendHave(piece.index);
             }
         }
+
+        /* Update statistics */
+        left -= piece.length;
     }
 
     /**
@@ -262,7 +265,7 @@ public class PeerCoordinator {
      * @param uploaded number of bytes uploaded
      */
     public void incrementUploaded(int uploaded) {
-        // TODO
+        this.uploaded += uploaded;
     }
 
     /**
@@ -270,13 +273,17 @@ public class PeerCoordinator {
      * @param downloaded number of bytes downloaded
      */
     public void incrementDownloaded(int downloaded) {
-        // TODO
+        this.downloaded += downloaded;
     }
 
     /**
      * Resets the statistics of all peer's uploaded to and downloaded from bytes. Used for unchoking algorithm.
      */
     public void resetPeersUploadedDownloaded() {
-        // TODO
+        synchronized (peers) {
+            for (Peer p: peers) {
+                p.resetUploadedDownloaded();
+            }
+        }
     }
 }

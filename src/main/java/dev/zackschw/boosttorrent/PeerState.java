@@ -318,8 +318,8 @@ public class PeerState {
      * @param downloaded number of bytes downloaded
      */
     void incrementDownloaded(int downloaded) {
-        // TODO
-        // TODO call when downloading a piece
+        this.downloaded += downloaded;
+        coordinator.incrementDownloaded(downloaded);
     }
 
     /**
@@ -327,14 +327,15 @@ public class PeerState {
      * @param uploaded number of bytes uploaded
      */
     void incrementUploaded(int uploaded) {
-        // TODO
-        // TODO call when uploading a piece
+        this.uploaded += uploaded;
+        coordinator.incrementUploaded(uploaded);
     }
 
     /**
      * Resets the statistics of this peer's uploaded to and downloaded from bytes. Used for unchoking algorithm.
      */
     void resetUploadedDownloaded() {
-        // TODO
+        downloaded = 0;
+        uploaded = 0;
     }
 }

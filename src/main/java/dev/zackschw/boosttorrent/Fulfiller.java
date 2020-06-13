@@ -66,7 +66,12 @@ public class Fulfiller {
     private void sendPiecesToPeers() {
         while (!stop) {
             List<Peer> peersAmUnchoking = coordinator.getPeersAmUnchoking();
-            // TODO
+            // TODO maintain this with a set
+            for (Peer p : peersAmUnchoking) {
+                // TODO get first request from this peer and send the block
+                Request r = requests.get(0);
+                p.getState().incrementUploaded(r.len);
+            }
         }
     }
 }
