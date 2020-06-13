@@ -114,15 +114,19 @@ public class PeerCoordinator {
     }
 
 
-    public void gotRequest() {
-        // TODO
+    /**
+     * Adds request to queue to fulfill.
+     */
+    public void gotRequest(int index, int begin, int len, Peer peer) {
+        fulfiller.onReceivedRequest(index, begin, len, peer);
     }
 
     /**
      * Writes finished piece to storage and sends Have message to all peers
      */
     public void onFinishedPiece(Piece piece) {
-        // TODO write to storage
+        /* Write to storage */
+        storage.writePiece(piece);
 
         /* Remove from outstanding pieces */
         synchronized (outstandingPieces) {
@@ -191,6 +195,7 @@ public class PeerCoordinator {
         synchronized (outstandingPieces) {
             for (int i = 0; i < myBitfield.getSize(); i++) {
                 if (!myBitfield.isSet(i) && peerBitfield.isSet(i) && !outstandingPieces.contains(i)) {
+                    outstandingPieces.add(i);
                     return i;
                 }
             }
