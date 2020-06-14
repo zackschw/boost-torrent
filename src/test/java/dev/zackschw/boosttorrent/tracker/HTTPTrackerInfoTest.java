@@ -1,27 +1,21 @@
 package dev.zackschw.boosttorrent.tracker;
 
 import dev.zackschw.boosttorrent.PeerAddress;
-import dev.zackschw.boosttorrent.bencode.BEncoder;
 import dev.zackschw.boosttorrent.bencode.BValue;
 import dev.zackschw.boosttorrent.bencode.BencodeException;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
 
-class HTTPTrackerInfoTest {
+public class HTTPTrackerInfoTest {
 
     @Test
-    void testDictPeers() throws Exception {
+    public void testDictPeers() throws Exception {
         BValue peersBV = new BValue(List.of(
                         new BValue(
                                 Map.of("peer id", new BValue("excluded".getBytes(StandardCharsets.UTF_8)),
@@ -37,7 +31,7 @@ class HTTPTrackerInfoTest {
                                         "port", new BValue("2222".getBytes(StandardCharsets.UTF_8))))));
 
 
-        HTTPTrackerInfo fakeTracker = new HTTPTrackerInfo("http://www.google.com", null, 2222, null);
+        HTTPTrackerInfo fakeTracker = new HTTPTrackerInfo("http://www.google.com", null, null);
         fakeTracker.decodePeers(peersBV);
         List<PeerAddress> peers = fakeTracker.getPeers();
 
@@ -50,14 +44,14 @@ class HTTPTrackerInfoTest {
     }
 
     @Test
-    void testBinaryPeers() throws IOException, BencodeException {
+    public void testBinaryPeers() throws IOException, BencodeException {
         BValue peersBV = new BValue(new byte[] {
                 127,0,0,1, (byte)0xfd, (byte)0xe8,
                 (byte)255,(byte)255,(byte)255,0, (byte)0xd4, 0x31,
                 (byte)129,1,100,100, 0x08, (byte)0xae });
 
 
-        HTTPTrackerInfo fakeTracker = new HTTPTrackerInfo("http://www.google.com", null, 2222, null);
+        HTTPTrackerInfo fakeTracker = new HTTPTrackerInfo("http://www.google.com", null, null);
         fakeTracker.decodePeers(peersBV);
         List<PeerAddress> peers = fakeTracker.getPeers();
 
