@@ -65,6 +65,18 @@ public class Storage {
     }
 
     /**
+     * Closes all files.
+     */
+    public void closeAll() {
+        for (RandomAccessFile file : files) {
+            try {
+                file.close();
+            } catch (IOException ignore) {
+            }
+        }
+    }
+
+    /**
      * Writes the piece to storage
      * @param piece the finished piece received from peers, with correct hash.
      */
@@ -105,15 +117,15 @@ public class Storage {
 
         long fileStartPos = 0;
         long fileEndPos = 0;
-        int i = 0;
+        int i = -1;
 
         try {
             synchronized (this) {
                 /* Find the file where the block/piece begins */
                 do {
+                    i++;
                     fileStartPos = fileEndPos;
                     fileEndPos += meta.getFiles().get(i).getLength();
-                    i++;
                 } while (!(objectStartPos >= fileStartPos && objectStartPos < fileEndPos));
 
                 /* Read/write all the bytes we can from this file, then go to the next and repeat */
@@ -136,9 +148,13 @@ public class Storage {
                     bytesHandled += bytesToHandle;
 
                     /* Next file */
-                    i++;
-                    fileStartPos = fileEndPos;
-                    fileEndPos += meta.getFiles().get(i).getLength();
+                    if (++i < meta.getFiles().size()) {
+                        fileStartPos = fileEndPos;
+                        fileEndPos += meta.getFiles().get(i).getLength();
+                    } else {
+                        if (bytesHandled != length)
+                            throw new RuntimeException("Storage: Handled " + bytesHandled + " bytes, Ran out of files to read/write to");
+                    }
                 }
             }
         } catch (IOException e) {

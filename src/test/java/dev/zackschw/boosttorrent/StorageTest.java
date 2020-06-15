@@ -11,6 +11,8 @@ import static org.junit.Assert.*;
 
 public class StorageTest {
 
+    private Storage storage;
+
     private MetadataInfo createTestMeta() throws Exception {
         /* Name: multiFile
          * File1: multiFile/file1  --  length 7
@@ -31,7 +33,7 @@ public class StorageTest {
     public void writePieceMultipleFiles() {
         try {
             MetadataInfo meta = createTestMeta();
-            Storage storage = new Storage(meta);
+            storage = new Storage(meta);
             storage.createFiles();
 
             Piece piece1 = new Piece(0, 50, null);
@@ -47,8 +49,8 @@ public class StorageTest {
             byte[] block2 = storage.readBlock(0, 25, 25);
             byte[] block1expected = new byte[25];
             Arrays.fill(block1expected, (byte) 9);
-            assertArrayEquals(block1, block1expected);
-            assertArrayEquals(block2, block1expected);
+            assertArrayEquals(block1expected, block1);
+            assertArrayEquals(block1expected, block2);
 
             /* Write piece2 = 35 bytes */
             storage.writePiece(piece2);
@@ -59,14 +61,15 @@ public class StorageTest {
             byte[] block3expected = new byte[25];
             byte[] block4expected = new byte[10];
             Arrays.fill(block3expected, (byte) 7);
-            Arrays.fill(block3expected, (byte) 7);
-            assertArrayEquals(block3, block3expected);
-            assertArrayEquals(block4, block4expected);
+            Arrays.fill(block4expected, (byte) 7);
+            assertArrayEquals(block3expected, block3);
+            assertArrayEquals(block4expected, block4);
 
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
             /* Cleanup */
+            storage.closeAll();
             File f1 = new File("multiFile/file1");
             File f2 = new File("multiFile/dir1/file2");
             File dir1 = new File("multiFile/dir1");
@@ -82,9 +85,5 @@ public class StorageTest {
                 dirParent.delete();
         }
 
-    }
-
-    @Test
-    public void readBlock() {
     }
 }
