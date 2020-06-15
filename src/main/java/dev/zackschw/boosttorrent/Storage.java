@@ -47,7 +47,7 @@ public class Storage {
 
         long fileStartPos = 0;
         long fileEndPos = 0;
-        int i=0;
+        int i = 0;
         try {
             synchronized (this) {
                 /* Find the file where the piece begins */
@@ -89,6 +89,46 @@ public class Storage {
      */
     public byte[] readBlock(int piece, int begin, int length) {
         // TODO
-        return null;
+        byte[] pieceOut = new byte[length];
+
+        long blockStartPos = piece * meta.getPieceLength() + begin;
+        long blockEndPos = blockStartPos + length;
+
+        long fileStartPos = 0;
+        long fileEndPos = 0;
+        int i = 0;
+
+        try {
+            synchronized (this) {
+                /* Find the file where the block begins */
+                do {
+                    fileStartPos = fileEndPos;
+                    fileEndPos += meta.getFiles().get(i).getLength();
+                    i++;
+                } while (!(blockStartPos >= fileStartPos && blockStartPos < fileEndPos));
+
+                /* Read all the bytes we can from this file, then go to the next and repeat */
+                int bytesRead = 0;
+                while (bytesRead < length) {
+                    /* Read whichever is shorter: to end of file or to end of the block */
+                    long readEndPos = Math.min(blockEndPos, fileEndPos);
+                    int bytesToRead = (int) (readEndPos - (blockStartPos + bytesRead));
+
+                    /* Read */
+                    files[i].seek(blockStartPos + bytesRead - fileStartPos);
+                    files[i].read(pieceOut, bytesRead, bytesToRead);
+                    bytesRead += bytesToRead;
+
+                    /* Next file */
+                    i++;
+                    fileStartPos = fileEndPos;
+                    fileEndPos += meta.getFiles().get(i).getLength();
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return pieceOut;
     }
 }
