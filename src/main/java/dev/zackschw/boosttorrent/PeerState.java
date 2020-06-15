@@ -117,14 +117,14 @@ public class PeerState {
      * On receive REQUEST message
      */
     void onRequestMessage(int piece, int begin, int length) {
-
+        coordinator.gotRequest(piece, begin, length, peer);
     }
 
     /**
      * On receive CANCEL message
      */
     void onCancelMessage(int piece, int begin, int length) {
-
+        coordinator.gotCancel(piece, begin, length, peer);
     }
 
 
@@ -286,7 +286,7 @@ public class PeerState {
      * If the interest status changes, a respective INTERESTED or NOTINTERESTED message is sent.
      * @param interested new interested status
      */
-    private void setAmInterested(boolean interested) {
+    private synchronized void setAmInterested(boolean interested) {
         if (!amInterested && interested) {
             amInterested = true;
             cout.sendInterested();

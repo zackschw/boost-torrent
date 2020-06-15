@@ -33,7 +33,7 @@ public class PeerCoordinator {
 
         peerAcceptor = new PeerAcceptor(this, meta, myPeerID);
         tracker = new TrackerCoordinator(meta, this);
-        fulfiller = new Fulfiller(this);
+        fulfiller = new Fulfiller(this, storage);
         peers = new ArrayList<>(MAX_PEERS);
         potentialPeers = new ArrayList<>();
         outstandingPieces = new ArrayList<>();
@@ -122,6 +122,13 @@ public class PeerCoordinator {
     }
 
     /**
+     * Removes request from queue to fulfill.
+     */
+    public void gotCancel(int index, int begin, int len, Peer peer) {
+        fulfiller.onReceivedCancel(index, begin, len, peer);
+    }
+
+    /**
      * Writes finished piece to storage and sends Have message to all peers
      */
     public void onFinishedPiece(Piece piece) {
@@ -175,6 +182,10 @@ public class PeerCoordinator {
             peers.remove(peer);
         }
 
+        if (!peer.getAmChoking()) {
+            fulfiller.clearRequestsFromPeer(peer);
+        }
+
         if (peers.size() < MAX_WANTED_PEERS) {
             synchronized (potentialPeers) {
                 if (potentialPeers.size() > 0) {
@@ -205,24 +216,6 @@ public class PeerCoordinator {
         }
 
         return -1;
-    }
-
-    /**
-     * Returns a list of peers containing all peers that are currently unchoked by the client.
-     * If no peers are unchoked, the returned list will be of size 0.
-     */
-    public List<Peer> getPeersAmUnchoking() {
-        List<Peer> unchokingList = new ArrayList<>(4);
-
-        synchronized (peers) {
-            for (Peer p: peers) {
-                if (!p.getAmChoking()) {
-                    unchokingList.add(p);
-                }
-            }
-        }
-
-        return unchokingList;
     }
 
     /**

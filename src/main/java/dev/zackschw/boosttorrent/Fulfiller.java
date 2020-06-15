@@ -5,12 +5,19 @@ import java.util.List;
 
 public class Fulfiller {
     private final PeerCoordinator coordinator;
+    private final Storage storage;
+
+    private Thread thread;
     private final List<Request> requests;
+    private final List<Peer> unchokedPeers;
     private boolean stop;
 
-    public Fulfiller(PeerCoordinator coordinator) {
+    public Fulfiller(PeerCoordinator coordinator, Storage storage) {
         this.coordinator = coordinator;
-        this.requests = new ArrayList<>();
+        this.storage = storage;
+
+        requests = new ArrayList<>();
+        unchokedPeers = new ArrayList<>(4);
         stop = false;
     }
 
@@ -26,6 +33,20 @@ public class Fulfiller {
             this.len = len;
             this.peer = peer;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            }
+
+            if (!(o instanceof Request)) {
+                return false;
+            }
+
+            Request r = (Request) o;
+            return r.index == index && r.begin == begin && r.len == len && r.peer == peer;
+        }
     }
 
 
@@ -33,8 +54,8 @@ public class Fulfiller {
      * Starts a new thread to send pieces to peers.
      */
     public void runFulfiller() {
-        Thread t = new Thread(this::sendPiecesToPeers);
-        t.start();
+        thread = new Thread(this::sendPiecesToPeers);
+        thread.start();
     }
 
     /**
@@ -42,6 +63,7 @@ public class Fulfiller {
      */
     public void stop() {
         stop = true;
+        thread.interrupt();
     }
 
     /**
@@ -53,24 +75,73 @@ public class Fulfiller {
         synchronized (requests) {
             requests.add(req);
         }
+
+        synchronized (this) {
+            notifyAll();
+        }
+    }
+
+    /**
+     * Fulfill requests to this peer.
+     */
+    public void onUnchokePeer(Peer peer) {
+        synchronized (unchokedPeers) {
+            unchokedPeers.add(peer);
+        }
+    }
+
+    public void onReceivedCancel(int index, int begin, int len, Peer peer) {
+        Request req = new Request(index, begin, len, peer);
+
+        synchronized (requests) {
+            requests.remove(req);
+        }
     }
 
     /**
      * Clears all outstanding requests to this peer.
      * Used when the client chokes a peer and will no longer fulfill requests.
      */
-    public void clearRequestsFromPeer() {
-        // TODO
+    public void clearRequestsFromPeer(Peer peer) {
+        synchronized (unchokedPeers) {
+            unchokedPeers.remove(peer);
+        }
+
+        synchronized (requests) {
+            requests.removeIf(request -> request.peer == peer);
+        }
     }
 
     private void sendPiecesToPeers() {
         while (!stop) {
-            List<Peer> peersAmUnchoking = coordinator.getPeersAmUnchoking();
-            // TODO maintain this with a set
-            for (Peer p : peersAmUnchoking) {
-                // TODO get first request from this peer and send the block
-                Request r = requests.get(0);
-                p.getState().incrementUploaded(r.len);
+            /* Wait for requests to come in */
+            while (requests.size() == 0) {
+                synchronized (this) {
+                    try {
+                        wait();
+                    } catch (InterruptedException ignore) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
+            
+            if (stop)
+                break;
+
+            synchronized (unchokedPeers) {
+                for (Peer p : unchokedPeers) {
+                    /* Get first request from this peer and send the block */
+                    synchronized (requests) {
+                        for (Request r : requests) {
+                            if (r.peer == p) {
+                                byte[] block = storage.readBlock(r.index, r.begin, r.len);
+                                p.getPeerConnectionOut().sendPiece(r.index, r.begin, block);
+                                p.getState().incrementUploaded(r.len);
+                                break;
+                            }
+                        }
+                    }
+                }
             }
         }
     }
