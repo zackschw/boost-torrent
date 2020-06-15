@@ -21,6 +21,7 @@ public class Peer {
     private PeerState state;
     private PeerConnectionIn cin;
     private PeerConnectionOut cout;
+    private boolean newConnection;
 
     private byte[] peerID;
 
@@ -181,7 +182,7 @@ public class Peer {
 
 
     /**
-     * Sends a have message to the peer
+     * Sends a have message to the peer and recalculate interest in the peer
      * @param piece index of the completed piece
      */
     public void sendHave(int piece) {
@@ -219,6 +220,20 @@ public class Peer {
             return state.getAmChoking();
         else
             return false;
+    }
+
+    /**
+     * Returns true if the connection is a new connection. Connections are new until a call to setNotNewConnection().
+     */
+    public boolean isNewConnection() {
+        return state!= null && newConnection;
+    }
+
+    /**
+     * Sets newConnection state to false.
+     */
+    public void setNotNewConnection() {
+        newConnection = false;
     }
 
 

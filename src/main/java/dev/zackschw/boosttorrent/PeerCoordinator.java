@@ -14,6 +14,7 @@ public class PeerCoordinator {
     private final PeerAcceptor peerAcceptor;
     private final TrackerCoordinator tracker;
     private final Fulfiller fulfiller;
+    private final Thread unchoker;
     private int listenerPort;
     private long uploaded;
     private long downloaded;
@@ -34,6 +35,7 @@ public class PeerCoordinator {
         peerAcceptor = new PeerAcceptor(this, meta, myPeerID);
         tracker = new TrackerCoordinator(meta, this);
         fulfiller = new Fulfiller(this, storage);
+        unchoker = new Thread(this::unchokePeerTask);
         peers = new ArrayList<>(MAX_PEERS);
         potentialPeers = new ArrayList<>();
         outstandingPieces = new ArrayList<>();
@@ -65,6 +67,9 @@ public class PeerCoordinator {
                 addPeer(peer);
             }
         }
+
+        /* Start unchoking peers */
+        unchoker.start();
     }
 
     /**
@@ -82,6 +87,38 @@ public class PeerCoordinator {
         Thread t = new Thread(() -> peer.runConnection(this, storage.getMyBitfield()));
         t.start();
         return true;
+    }
+
+    /**
+     * Unchokes the 4 peers that the client has the best download rate from every 10 seconds.
+     * Every 30 seconds a new peer is optimistically unchoked.
+     * New connections are 3 times more likely to be optimistically unchoked.
+     * Usage: called in a new thread
+     */
+    public void unchokePeerTask() {
+        int optimisticUnchokeCycle = 0;
+
+        while (!storage.getMyBitfield().isComplete()) {
+
+            /* Find the 4 peers with the highest download rate
+             * The 4th peer is optimistically unchoked every 3rd cycle
+             */
+            // TODO
+
+            /* If a peer is being unchoked, send message and notify fulfiller */
+            // TODO
+
+            /* If a peer is being choked, send message and notify fulfiller */
+            // TODO
+
+            optimisticUnchokeCycle++;
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
     }
 
     /**
