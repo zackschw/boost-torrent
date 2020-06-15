@@ -3,6 +3,9 @@ package dev.zackschw.boosttorrent;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 public class Storage {
     private final MetadataInfo meta;
@@ -61,7 +64,34 @@ public class Storage {
      * The bitvector is updated appropriately.
      */
     private void checkPieceHashes() {
-        // TODO
+        /* First n-1 pieces */
+        for (int i=0; i < meta.getNumPieces() - 1; i++) {
+            /* Read block */
+            byte[] pieceBytes = readBlock(i, 0, meta.getPieceLength());
+
+            /* Check hash */
+            if (Arrays.equals(hash(pieceBytes), meta.getPieceHash(i))) {
+                myBitfield.setBit(i);
+            }
+
+        }
+
+        /* Last piece */
+        byte[] pieceBytes = readBlock(meta.getNumPieces()-1, 0, meta.getLastPieceLength());
+        if (Arrays.equals(hash(pieceBytes), meta.getPieceHash(meta.getNumPieces()-1))) {
+            myBitfield.setBit(meta.getNumPieces()-1);
+        }
+    }
+
+    private byte[] hash(byte[] input) {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("SHA-1");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException(e);
+        }
+
+        return md.digest(input);
     }
 
     /**
