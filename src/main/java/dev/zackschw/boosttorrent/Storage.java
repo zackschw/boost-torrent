@@ -1,5 +1,6 @@
 package dev.zackschw.boosttorrent;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
@@ -30,11 +31,37 @@ public class Storage {
      * @throws IOException if an I/O error occurs when creating a file or reading from an existing file
      */
     public void createFiles() throws IOException {
+        boolean filesExist = false;
+
         for (int i=0; i < files.length; i++) {
             MetaFile m = meta.getFiles().get(i);
+            File f = new File(m.getPath());
+
+            /* If the file does not exist, create parent directories as needed */
+            if (!f.exists()) {
+                /* Create parent directories as needed */
+                if (m.getPath().contains("/")) {
+                    f.getParentFile().mkdirs();
+                }
+            } else {
+                filesExist = true;
+            }
+
             files[i] = new RandomAccessFile(m.getPath(), "rw");
             files[i].setLength(m.getLength());
         }
+
+        if (filesExist) {
+            checkPieceHashes();
+        }
+    }
+
+    /**
+     * Checks the files for any pieces that are already complete and satisfy the hash check.
+     * The bitvector is updated appropriately.
+     */
+    private void checkPieceHashes() {
+        // TODO
     }
 
     /**
