@@ -1,13 +1,13 @@
 package dev.zackschw.boosttorrent;
 
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.Assert.*;
 
-class BitvectorTest {
+public class BitvectorTest {
 
     @Test
-    void setBit() {
+    public void setBit() {
         Bitvector bitvector = new Bitvector(25);
         bitvector.setBit(0);
         bitvector.setBit(3);
@@ -22,7 +22,7 @@ class BitvectorTest {
     }
 
     @Test
-    void unsetBit() {
+    public void unsetBit() {
         byte[] bytes = new byte[] { 127, 127, 127 };
         Bitvector bitvector = new Bitvector(24, bytes);
 
@@ -37,7 +37,7 @@ class BitvectorTest {
     }
 
     @Test
-    void isSet() {
+    public void isSet() {
         byte[] bytes = new byte[] { 127, 127, 127 };
         Bitvector bitvector = new Bitvector(24, bytes);
 
@@ -49,7 +49,7 @@ class BitvectorTest {
     }
 
     @Test
-    void isEmpty() {
+    public void isEmpty() {
         byte[] b1 = new byte[] {0, 0, (byte)0b10000000};
         byte[] b2 = new byte[] {0, 0, 0};
 
@@ -65,7 +65,7 @@ class BitvectorTest {
     }
 
     @Test
-    void isComplete() {
+    public void isComplete() {
         byte[] b1 = new byte[] { (byte) 255, (byte) 255, (byte) 0b10000000 };
         byte[] b2 = new byte[] { (byte) 255, (byte) 255, (byte) 0b11111100 };
 

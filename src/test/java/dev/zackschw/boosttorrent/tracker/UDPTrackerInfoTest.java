@@ -1,15 +1,16 @@
 package dev.zackschw.boosttorrent.tracker;
 
 import dev.zackschw.boosttorrent.PeerAddress;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
 
-class UDPTrackerInfoTest {
+public class UDPTrackerInfoTest {
+
     @Test
-    void testUDP() throws Exception {
+    public void testUDP() throws Exception {
         byte[] received = new byte[] {
                 0,0,0,1, // action: announce
                 0x64,0x4d,0x2b,(byte)0xe6, // transaction id
@@ -21,7 +22,7 @@ class UDPTrackerInfoTest {
                 (byte)129,1,100,100, 0x08, (byte)0xae // peer 3
         };
 
-        UDPTrackerInfo tracker = new UDPTrackerInfo("udp://google.com:33", null, 2222, null);
+        UDPTrackerInfo tracker = new UDPTrackerInfo("udp://google.com:33", null, null);
         tracker.decodePeers(received, received.length, 0x644d2be6);
         List<PeerAddress> peers = tracker.getPeers();
 

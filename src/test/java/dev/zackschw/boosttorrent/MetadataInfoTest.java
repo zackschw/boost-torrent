@@ -1,6 +1,7 @@
 package dev.zackschw.boosttorrent;
 
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -8,12 +9,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-class MetadataInfoTest {
+public class MetadataInfoTest {
 
     @Test
-    void singleFileTest() throws Exception {
+    public void singleFileTest() throws Exception {
         String info = "d6:lengthi78e4:name34:ubuntu-19.10-live-server-amd64.iso12:piece lengthi40e6:pieces" +
                 "40:0123456789012345678901234567890123456789e";
         String torrent = "d8:announce35:https://torrent.ubuntu.com/announce13:announce-list" +
@@ -39,7 +38,7 @@ class MetadataInfoTest {
     }
 
     @Test
-    void multiFileTest() throws Exception {
+    public void multiFileTest() throws Exception {
         String info = "d5:filesld6:lengthi7e4:pathl5:file1eed6:lengthi78e4:pathl4:dir15:file2eee" +
                 "4:name9:multiFile12:piece lengthi50e6:pieces40:0123456789012345678901234567890123456789e";
         String torrent = "d8:announce35:https://torrent.ubuntu.com/announce13:announce-list" +
