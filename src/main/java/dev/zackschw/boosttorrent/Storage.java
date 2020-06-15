@@ -45,39 +45,7 @@ public class Storage {
         long pieceStartPos = piece.index * meta.getPieceLength();
         long pieceEndPos = pieceStartPos + piece.length;
 
-        long fileStartPos = 0;
-        long fileEndPos = 0;
-        int i = 0;
-        try {
-            synchronized (this) {
-                /* Find the file where the piece begins */
-                do {
-                    fileStartPos = fileEndPos;
-                    fileEndPos += meta.getFiles().get(i).getLength();
-                    i++;
-                } while (!(pieceStartPos >= fileStartPos && pieceStartPos < fileEndPos));
-
-                /* Write all the bytes we can to this file, then go to the next and repeat */
-                int bytesWritten = 0;
-                while (bytesWritten < piece.length) {
-                    /* Write whichever is shorter: to end of file or to end of the piece */
-                    long writeEndPos = Math.min(pieceEndPos, fileEndPos);
-                    int bytesToWrite = (int) (writeEndPos - (pieceStartPos + bytesWritten));
-
-                    /* Write */
-                    files[i].seek(pieceStartPos + bytesWritten - fileStartPos);
-                    files[i].write(piece.bytes, bytesWritten, bytesToWrite);
-                    bytesWritten += bytesToWrite;
-
-                    /* Next file */
-                    i++;
-                    fileStartPos = fileEndPos;
-                    fileEndPos += meta.getFiles().get(i).getLength();
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        boostFileIO(pieceStartPos, pieceEndPos, piece.bytes, 'w');
     }
 
     /**
@@ -88,11 +56,25 @@ public class Storage {
      * @return byte array of requested length representing the block specified by piece index and begin offset.
      */
     public byte[] readBlock(int piece, int begin, int length) {
-        // TODO
-        byte[] pieceOut = new byte[length];
-
         long blockStartPos = piece * meta.getPieceLength() + begin;
         long blockEndPos = blockStartPos + length;
+
+        byte[] pieceOut = new byte[length];
+
+        boostFileIO(blockStartPos, blockEndPos, pieceOut, 'r');
+
+        return pieceOut;
+    }
+
+    /**
+     * Handles file input/output. Writes pieces across files (if needed) or reads blocks across files (if needed).
+     * @param objectStartPos start position of the object to IO
+     * @param objectEndPos end position of the object to IO
+     * @param ioArray byte array to IO from/to
+     * @param ioMode action to be performed [r = read object from array; w = write object to array]
+     */
+    private void boostFileIO (long objectStartPos, long objectEndPos, byte[] ioArray, char ioMode) {
+        long length = objectEndPos - objectStartPos;
 
         long fileStartPos = 0;
         long fileEndPos = 0;
@@ -100,24 +82,31 @@ public class Storage {
 
         try {
             synchronized (this) {
-                /* Find the file where the block begins */
+                /* Find the file where the block/piece begins */
                 do {
                     fileStartPos = fileEndPos;
                     fileEndPos += meta.getFiles().get(i).getLength();
                     i++;
-                } while (!(blockStartPos >= fileStartPos && blockStartPos < fileEndPos));
+                } while (!(objectStartPos >= fileStartPos && objectStartPos < fileEndPos));
 
-                /* Read all the bytes we can from this file, then go to the next and repeat */
-                int bytesRead = 0;
-                while (bytesRead < length) {
-                    /* Read whichever is shorter: to end of file or to end of the block */
-                    long readEndPos = Math.min(blockEndPos, fileEndPos);
-                    int bytesToRead = (int) (readEndPos - (blockStartPos + bytesRead));
+                /* Read/write all the bytes we can from this file, then go to the next and repeat */
+                int bytesHandled = 0;
+                while (bytesHandled < length) {
+                    /* Read/write whichever is shorter: end of file or end of the block/piece */
+                    long ioEndPos = Math.min(objectEndPos, fileEndPos);
+                    int bytesToHandle = (int) (ioEndPos - (objectStartPos + bytesHandled));
 
-                    /* Read */
-                    files[i].seek(blockStartPos + bytesRead - fileStartPos);
-                    files[i].read(pieceOut, bytesRead, bytesToRead);
-                    bytesRead += bytesToRead;
+                    /* Perform IO */
+                    files[i].seek(objectStartPos + bytesHandled - fileStartPos);
+                    if (ioMode == 'r') {
+                        /* Read */
+                        files[i].read(ioArray, bytesHandled, bytesToHandle);
+                    }
+                    else if (ioMode == 'w') {
+                        /* Write */
+                        files[i].write(ioArray, bytesHandled, bytesToHandle);
+                    }
+                    bytesHandled += bytesToHandle;
 
                     /* Next file */
                     i++;
@@ -128,7 +117,5 @@ public class Storage {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
-        return pieceOut;
     }
 }
